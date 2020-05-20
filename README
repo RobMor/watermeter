@@ -1,0 +1,65 @@
+This is a development program which is intended to do ocr on the numbers in a water meter.
+
+Written by Tom Mullins
+
+
+Start here:
+ - Try to position the camera so that the image is square, not skewed. Also, try to keep any bright reflections in the very center, where the needle is mounted.
+ - To update the image shown from the camera, press the right or left arrow, or the spacebar.
+ - Press "r" to set the current reading. Enter only the movable digits; this will be multiplied by ten and added to the needle measurement.
+ - Click with the left mouse button at the center of the circle of numbers, and drag to the edge of the circle. A red circle will be shown with a green line where it thinks a red needle is.
+ - When you're ready to start the automated data collection, press p. You can stop it at any time to move the circle by pressing the spacebar.
+ - It will write the value shown in the lower left corner to a meter.csv, along with the current time, every 5 seconds or so.
+
+Keys (in addition to below):
+    r           input current reading
+                to set the needle line's length:
+    1               from center to edge (normal length)
+    2               from 1/6 behind center to edge (7/6 normal length)
+    3               from 4/5 along needle to edge (1/5 normal length) (defualt)
+
+Command line options:
+    -s          output the current frame into images/[date].ppm whenever the reading has changed enough
+    -a          with -s, output image every five seconds regardless of reading change (without -s, has no effect)
+    -t          run ted collection program every hour when running meter collection (make sure to set TED_PATH near the top of main.cpp)
+
+
+
+
+Below this was for the old version. It now just watches the needle, without reading the digits.
+
+
+Start here:
+ - To update the image shown from the camera, press the right or left arrow, or the spacebar.
+ - Start with the leftmost digit.
+ - Click and drag the mouse over it to draw a red rectangle around it. Try to make it thin enough that there are no dark pixels along the edge, yet leave some space around the digit.
+ - After it has been drawn you can click and drag the edges to move them.
+ - The area within will turn to only black and white pixels, based on an automatically chosen threshold from the pixel intensities (I = (R + G + B)/3). Any row having mostly white pixels is covered with red to show the gaps between numbers. If there is only one of these gaps, there are assumed to be two numbers. If there are two or more gaps, it will assume there is only one number, and it will look for the number between the first and second gaps. If there are no gaps, it assumes the whole thing is a number.
+ - A green box is drawn around wherever it locates a number. If the green box is in the totally wrong place, make sure that the vertical edges of the red box do not have any black pixels; if either edge does, move it closer to the number. Also, if it draws two green boxes and claims that digit is one less than what it should be, move the top of that red box down until there is only one green box.
+ - Repeat the above for the rest of the digits, from left to right. The bottom left corner will display what it thinks each digit is, in the order you have drawn them. (If you draw the boxes from right to left, the digits will be backwards.)
+ - Finally, click with the right mouse button at the center of the circle of numbers, and drag to the edge of the circle. A red circle will be shown with a green line where it thinks a red needle is.
+ - When you're ready to start the automated data collection, press p. You can stop it at any time to move boxes or the circle by pressing the spacebar.
+ - It will write the value shown in the lower left corner to a meter.csv, along with the current time, every 5 seconds or so.
+
+Keys:
+    p           begin data collection, saving value every 5 seconds
+    spacebar    stop data collection, or go to next frame
+    left        go to next frame
+    right       go to next frame, or if reading from ppm files, previous frame
+    u           erase last box drawn
+    e           erase all boxes drawn
+    j/k         lower/raise the digit image threshold
+
+Pressing control with a number key will save the contents of a green box (specifically, the highest green box in the last red box drawn) as #.ppm, and once the program is restarted it will use that as a reference for guessing digits' values.
+
+To change the distance the mouse must be from an edge or corner to drag it, instead of creating a new box, change SNAP_SIZE at the top of digit.h.
+
+If you want input from a bunch of ppm files, rather than from video4linux2:
+ 1. Change PPMDIR at the top of "ppmfiles" to the directory containing all of the ppm files
+ 2. Run ./ppmfiles to generate a file called ppmfiles.out
+ 3. Comment out the line "#define INPUT_FROM_GST" near the top of input.cpp
+ 4. Recompile
+To go back to video4linux2:
+ 1. Uncomment the line "#define INPUT_FROM_GST" near the top of input.cpp
+ 2. Recompile
+Warning: the timestamps saved into meter.csv will NOT be taken from the ppm files, they will still be the current time (just like with video4linux2).
