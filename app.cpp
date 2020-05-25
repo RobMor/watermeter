@@ -156,6 +156,14 @@ gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self)
             self->Refresh();
             return TRUE;
         }
+        case GDK_KEY_Return:
+        {
+            self->NextFrame();
+            self->ProcessFrame();
+            self->Refresh();
+
+            return TRUE;
+        }
         // Ask the user for the current reading
         case GDK_KEY_r:
         {

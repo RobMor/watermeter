@@ -7,6 +7,9 @@ Then start the program:
 
     ./ocr -sat
 
+Pressing the enter key will refresh the image you see. Press enter at least once
+to give yourself an accurate image of what the webcam is seeing.
+
 Pressing r will bring up a dialog to enter the current reading of the dial.
 Enter the current whole number reading of the dial (this means the numbers
 shown on the rotating digits along with the position of the needle around the
@@ -28,6 +31,7 @@ CONTROLS
 There is a limited set of controls when using the program:
 
     Click + Drag (on webcam image): Draw the circle to search for the needle.
+    Enter: Refresh the image on screen.
     r: Set the current reading of the dial (See GUIDE).
     Space: Begin data collection.
 
