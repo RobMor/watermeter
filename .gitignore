@@ -1,2 +1,7 @@
+.vscode/*
+images/*
+ocr
+*.o
 *.png
 *.zip
+*.csv

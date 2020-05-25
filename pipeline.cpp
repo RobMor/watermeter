@@ -1,40 +1,15 @@
-#include <gst/app/gstappsink.h>
+#include "pipeline.h"
 
-#include "main.h"
-#include "ppm.h"
+gboolean BusHandler(GstBus *bus, GstMessage *msg, gpointer *data);
 
-// if not defined, input will be from files listed in "ppmfiles.out"
-#define INPUT_FROM_GST
-
-int frame = -1;              // current frame
-
-GstElement *pipeline;
-GstAppSink *sink;
-
-gboolean bushandler(GstBus*, GstMessage*, GtkWidget*);
-void pixbufdestroy(guchar*, gpointer);
-
-const char *imagefilenames[] = {
-#ifndef INPUT_FROM_GST
-#include "ppmfiles.out" // rather silly system, no?
-#endif
-};
-
-/*
- *  === makepipeline ===
- *
- *  creates GST objects necessary for the pipeline, which gives us the video input
- */
-
-void makepipeline(GtkWidget *window, image *mainimage) {
-#ifdef INPUT_FROM_GST
+Pipeline::Pipeline() {
     GstElement *source, *converter;
     GstCaps *caps;
     GstBus *bus;
     guint bus_watch_id;
-    
+
     /* ------ Create pipeline ------ */
-    pipeline = gst_pipeline_new("watermeter-webcam");
+    this->pipeline = gst_pipeline_new("watermeter-webcam");
     
     /* ------ Create pipeline elements ------ */
 
@@ -46,7 +21,7 @@ void makepipeline(GtkWidget *window, image *mainimage) {
     converter = gst_element_factory_make("videoconvert", "converter");
 
     // GstAppSink that we can get data from
-    sink = GST_APP_SINK_CAST(gst_element_factory_make("appsink", "appsink"));
+    this->sink = GST_APP_SINK_CAST(gst_element_factory_make("appsink", "appsink"));
     // Only allow the AppSink to only store one buffer (aka frame)
     gst_app_sink_set_max_buffers(sink, 1);
     // Tell the AppSink to drop old buffers when we run out of space
@@ -62,7 +37,7 @@ void makepipeline(GtkWidget *window, image *mainimage) {
 
     // Add a message handler to the pipeline (called bus handler in GST world)
     bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
-    bus_watch_id = gst_bus_add_watch(bus, (GstBusFunc) bushandler, NULL);
+    bus_watch_id = gst_bus_add_watch(bus, (GstBusFunc) BusHandler, NULL);
     g_object_unref(bus);
 
     // Add all previously created elements to the pipeline
@@ -78,43 +53,24 @@ void makepipeline(GtkWidget *window, image *mainimage) {
 
     // Wait until the pipeline actually starts playing
     gst_element_get_state(pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
-#endif
 }
 
-/*
- *  === cleanuppipeline ===
- *
- *  free objects made in makepipeline
- */
-
-void cleanuppipeline(byte *data, GdkPixbuf *pixbuf) {
-#ifdef INPUT_FROM_GST
+Pipeline::~Pipeline() {
     // Stop the pipeline
-    gst_element_set_state(pipeline, GST_STATE_NULL);
+    gst_element_set_state(this->pipeline, GST_STATE_NULL);
     // Free objects
-    gst_object_unref(pipeline);
-    gst_object_unref(sink);
-
-    if (GDK_IS_PIXBUF(pixbuf)) g_object_unref(pixbuf);
-#else
-    free(data);
-#endif
+    gst_object_unref(this->pipeline);
+    gst_object_unref(this->sink);
 }
 
-/*
- *  === capture ===
- *
- *  update mainpixbuf and mainimage.data to a more recent frame
- */
-
-void capture(GdkPixbuf **pixbuf, image *mainimage) {
-#ifdef INPUT_FROM_GST
+GdkPixbuf* Pipeline::Capture() {
     GstSample *sample;
 
     // Pull a sample (aka frame) from the sink blocking until one is available
     sample = gst_app_sink_pull_sample(sink);
 
     if (sample) {
+        GdkPixbuf *pixbuf;
         GstBuffer *buffer;
         GstCaps *caps;
         GstStructure *s;
@@ -127,7 +83,7 @@ void capture(GdkPixbuf **pixbuf, image *mainimage) {
 
         if (!caps) {
             g_print("Could not get format of frame\n");
-            exit(-1);
+            exit(1);
         }
         
         // Get the structure behind the caps so we can grab height/width from
@@ -138,7 +94,7 @@ void capture(GdkPixbuf **pixbuf, image *mainimage) {
 
         if (!res) {
             g_print("Could not get dimensions of frame\n");
-            exit(-1);
+            exit(1);
         }
         
         // Get the buffer from the sample so we can access the raw data
@@ -146,60 +102,30 @@ void capture(GdkPixbuf **pixbuf, image *mainimage) {
 
         // Map the buffer to map (dunno why we need to do this)
         if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
-            *pixbuf = gdk_pixbuf_new_from_data(map.data,
+            pixbuf = gdk_pixbuf_new_from_data(map.data,
                     GDK_COLORSPACE_RGB, FALSE, 8, width, height,
                     GST_ROUND_UP_4 (width * 3), NULL, NULL);
 
-            mainimage->data = map.data;
-
             gst_buffer_unmap(buffer, &map);
+        } else {
+            pixbuf = NULL;
         }
 
         gst_sample_unref(sample);
+
+        return pixbuf;
     } else {
         if (gst_app_sink_is_eos(sink)) {
             g_print("Could not get frame because there are no more frames left\n");
         } else {
             g_print("Could not get frame (not EOS)\n");
         }
-        exit(-1);
+        exit(1);
     }
-#else
-    
-    // go to next frame
-    frame++;
-    if (frame == sizeof(imagefilenames)/sizeof(char*))
-        frame--;
-    
-    // free the previous pixbuf if there is one
-    if (GDK_IS_PIXBUF(*pixbuf)) g_object_unref(*pixbuf);
-    
-    // load the frame (see ppm.cpp)
-    loadfile(imagefilenames[frame], mainimage);
-    
-    // create a new pixbuf
-    *pixbuf = gdk_pixbuf_new_from_data(mainimage->data, GDK_COLORSPACE_RGB,
-        FALSE, 8, mainimage->width, mainimage->height, mainimage->width*3,
-        NULL, NULL);
-    
-#endif
-
 }
 
-/*
- *  === skipback ===
- *
- *  capture the previous frame instead of the next (should be called once before capture)
- */
-
-void skipback() {
-    frame -= 2;
-    if (frame < -1)
-        frame = -1;
-}
-
-// handles GST pipeline events
-gboolean bushandler(GstBus *bus, GstMessage *msg, GtkWidget *window) {
+// A callback for the GStreamer bus. Basically handles any errors that occur.
+gboolean BusHandler(GstBus *bus, GstMessage *msg, gpointer *data) {
     switch (GST_MESSAGE_TYPE(msg)) {
         case GST_MESSAGE_ERROR:
             GError *err;
@@ -208,12 +134,9 @@ gboolean bushandler(GstBus *bus, GstMessage *msg, GtkWidget *window) {
             g_print("%s\n%s\n", err->message, debug);
             g_error_free(err);
             g_free(debug);
-            quit();
+            exit(1);
             break;
     }
     return TRUE;
 }
 
-void pixbufdestroy(guchar *pixels, gpointer data) {
-    gst_memory_unref((GstMemory*)data);
-}

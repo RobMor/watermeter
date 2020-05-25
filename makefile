@@ -1,11 +1,11 @@
-PKGS = gtk+-2.0 gstreamer-1.0 gstreamer-app-1.0 tesseract libtiff-4
+PKGS = gtk+-3.0 cairo gstreamer-1.0 gstreamer-app-1.0
 
 CC = g++
-FLAGS = -O2 -g
+FLAGS = -g
 CFLAGS = $(FLAGS) `pkg-config --cflags $(PKGS)`
 LDFLAGS = $(FLAGS) `pkg-config --libs $(PKGS)`
 
-OBJS = main.o ppm.o digit.o input.o
+OBJS = main.o pipeline.o app.o
 
 .cpp.o:
 	$(CC) -c $(CFLAGS) $<
@@ -21,8 +21,7 @@ run: ocr
 clean:
 	rm -f $(OBJS)
 
-main.o: main.cpp main.h ppm.h digit.h input.h
-ppm.o: ppm.cpp ppm.h main.h
-digit.o: digit.cpp digit.h ppm.h main.h
-input.o: input.cpp input.h ppm.h main.h
+main.o: main.cpp app.h pipeline.h
+app.o: app.cpp app.h
+pipeline.o: pipeline.cpp pipeline.h
 
