@@ -15,13 +15,7 @@
 
 #include "pipeline.h"
 
-#define TED_PATH "~/ted/hourly/datacollection.py"
-
-// number of angles around the circle to check average hue
-#define NUM_ANGLES 512
-
-// Number of seconds in between frames
-#define FRAME_RATE 1
+#include "config.h"
 
 class Circle {
 public:
@@ -52,9 +46,6 @@ private:
 
     Circle *circle = new Circle();
     Line *line = new Line();
-    Line *hoverLine = new Line();
-
-    double histogram[NUM_ANGLES];
 
     bool isRunning = false;
     double currentReading = 0;
@@ -65,7 +56,6 @@ private:
     
     GtkWidget *window;
     GtkWidget *drawingArea;
-    GtkWidget *histogramArea;
     GtkWidget *numLabel;
 
     GdkPixbuf *image;
@@ -77,21 +67,20 @@ private:
     void Refresh();
 
     static gboolean UpdateDrawingArea(GtkWidget *widget, cairo_t *cr, App *self);
-    static gboolean UpdateHistogram(GtkWidget *widget, cairo_t *cr, App *self);
-    static gboolean HistClick(GtkWidget *widget, GdkEventButton *event, App *self);
     static gboolean KeyPress(GtkWidget *widget, GdkEventKey *event, App *self);
     static gboolean ButtonPress(GtkWidget *widget, GdkEventButton *event, App *self);
     static gboolean ButtonRelease(GtkWidget *widget, GdkEventButton *event, App *self);
     static gboolean Motion(GtkWidget *widget, GdkEventMotion *event, App *self);
-    
+
+    void AskForReading();    
+    void NextFrame();
+    void FindNeedle();
+    void ProcessFrame();
+
     guint frameTimeoutId = 0;
     static gboolean FrameTimeout(App *self);
     guint tedTimeoutId = 0;
     static gboolean TEDTimeout(App *self);
-
-    void NextFrame();
-    void FindNeedle();
-    void ProcessFrame();
 public:
     App(bool runTED, bool saveImages, bool saveAll);
 
