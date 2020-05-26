@@ -6,7 +6,6 @@ Pipeline::Pipeline() {
     GstElement *source, *converter;
     GstCaps *caps;
     GstBus *bus;
-    guint bus_watch_id;
 
     /* ------ Create pipeline ------ */
     this->pipeline = gst_pipeline_new("watermeter-webcam");
@@ -37,7 +36,7 @@ Pipeline::Pipeline() {
 
     // Add a message handler to the pipeline (called bus handler in GST world)
     bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
-    bus_watch_id = gst_bus_add_watch(bus, (GstBusFunc) BusHandler, NULL);
+    gst_bus_add_watch(bus, (GstBusFunc) BusHandler, NULL);
     g_object_unref(bus);
 
     // Add all previously created elements to the pipeline
@@ -136,7 +135,8 @@ gboolean BusHandler(GstBus *bus, GstMessage *msg, gpointer *data) {
             g_free(debug);
             exit(1);
             break;
+        default:
+            return TRUE;
     }
-    return TRUE;
 }
 

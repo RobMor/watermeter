@@ -11,23 +11,18 @@ App::App(bool runTED, bool saveImages, bool saveAll)
     this->NextFrame();
 
     this->MakeWindow(gdk_pixbuf_get_width(this->image), gdk_pixbuf_get_height(this->image));
-
-    loop = g_main_loop_new(NULL, FALSE);
 }
 
 void App::Run()
 {
     this->Refresh();
 
-    g_main_loop_run(this->loop);
+    gtk_main();
 }
 
 void App::MakeWindow(int width, int height)
 {
     this->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-
-    // TEMPORARY FOR TESTING
-    gtk_window_set_type_hint(GTK_WINDOW(this->window), GDK_WINDOW_TYPE_HINT_DIALOG);
 
     g_signal_connect(this->window, "key-press-event", G_CALLBACK(App::KeyPress), this);
 
@@ -143,14 +138,14 @@ gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self)
             {
                 g_source_remove(self->frameTimeoutId);
             }
-            self->frameTimeoutId = g_timeout_add(FRAME_RATE, G_SOURCE_FUNC(App::FrameTimeout), self);
+            self->frameTimeoutId = g_timeout_add(FRAME_RATE, (GSourceFunc)App::FrameTimeout, self);
             if (self->runTED)
             {
                 if (self->tedTimeoutId != 0)
                 {
                     g_source_remove(self->tedTimeoutId);
                 }
-                self->tedTimeoutId = g_timeout_add_seconds(3600, G_SOURCE_FUNC(App::TEDTimeout), self);
+                self->tedTimeoutId = g_timeout_add_seconds(3600, (GSourceFunc)App::TEDTimeout, self);
             }
 
             self->Refresh();
@@ -238,7 +233,7 @@ gboolean App::Motion(GtkWidget *widget, GdkEventMotion *event, App *self)
 
 void App::AskForReading()
 {
-    GtkWidget *dialog = gtk_dialog_new_with_buttons("Reading", GTK_WINDOW(this->window), GTK_DIALOG_MODAL, GTK_STOCK_OK, GTK_RESPONSE_OK, NULL);
+    GtkWidget *dialog = gtk_dialog_new_with_buttons("Reading", GTK_WINDOW(this->window), GTK_DIALOG_MODAL, "_OK", GTK_RESPONSE_OK, NULL);
 
     GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 
@@ -389,7 +384,7 @@ gboolean App::TEDTimeout(App *self)
 {
     if (self->isRunning && self->runTED)
     {
-        int exitCode = system(TED_PATH " auto");
+        system(TED_PATH " auto");
     }
 
     return self->isRunning;

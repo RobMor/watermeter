@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
                         runTED = true;
                         break;
                     default:
-                        g_print("Unrecognized option %s\n", argv[i][j]);
+                        g_print("Unrecognized option %c\n", argv[i][j]);
                         exit(1);
                 }
             }
