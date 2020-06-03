@@ -5,7 +5,7 @@ FLAGS = -g -Wall
 CFLAGS = $(FLAGS) `pkg-config --cflags $(PKGS)`
 LDFLAGS = $(FLAGS) `pkg-config --libs $(PKGS)`
 
-SRCS = main.cpp app.cpp app.h pipeline.cpp pipeline.h config.h makefile
+SRCS = main.cpp app.cpp app.h pipeline.cpp pipeline.h config.h README makefile
 OBJS = main.o pipeline.o app.o
 
 .cpp.o:

@@ -50,7 +50,7 @@ private:
     bool isRunning = false;
     double currentReading = 0;
     double currentAngle = 0;
-    int readingAtLastImageSave = 0;
+    double readingAtLastImageSave = 0;
 
     Pipeline *pipeline;
     

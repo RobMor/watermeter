@@ -338,7 +338,7 @@ void App::ProcessFrame()
 
     double prevAngle = this->currentAngle;
     this->FindNeedle();
-    int angleChange = this->currentAngle - prevAngle;
+    double angleChange = this->currentAngle - prevAngle;
     // Account for angle wrapping when computing the change
     angleChange = fmod(angleChange, 2 * M_PI);
     angleChange = fmin(2 * M_PI - angleChange, angleChange);
