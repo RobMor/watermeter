@@ -151,12 +151,39 @@ gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self)
             self->Refresh();
             return TRUE;
         }
+        // Update the current frame
         case GDK_KEY_Return:
         {
             self->NextFrame();
             self->ProcessFrame();
             self->Refresh();
 
+            return TRUE;
+        }
+        // Move needle detection up
+        case GDK_KEY_j:
+        {
+            if ((event->state & gtk_accelerator_get_default_mod_mask()) == GDK_CONTROL_MASK) {
+                self->start = fmin(self->end, self->start + 0.1);
+            } else {
+                self->end = fmin(1, self->end + 0.1);
+            }
+
+            self->FindNeedle();
+            self->Refresh();
+            return TRUE;
+        }
+        // Move needle detection down
+        case GDK_KEY_k:
+        {
+            if ((event->state & gtk_accelerator_get_default_mod_mask()) == GDK_CONTROL_MASK) {
+                self->start = fmax(0, self->start - 0.1);
+            } else {
+                self->end = fmax(self->start, self->end - 0.1);
+            }
+
+            self->FindNeedle();
+            self->Refresh();
             return TRUE;
         }
         // Ask the user for the current reading
@@ -281,7 +308,7 @@ void App::FindNeedle()
 
         double sum = 0;
         // Iterate radii
-        for (int d = 0; d < this->circle->r; d++)
+        for (int d = this->start * this->circle->r; d < this->end * this->circle->r; d++)
         {
             int x = this->circle->x + (d * cosa);
             int y = this->circle->y + (d * sina);
@@ -320,11 +347,11 @@ void App::FindNeedle()
     double cos_needle = std::cos(max_redness_angle);
     double sin_needle = std::sin(max_redness_angle);
 
-    this->line->x1 = this->circle->x;
-    this->line->y1 = this->circle->y;
+    this->line->x1 = this->circle->x + this->start * (this->circle->r * cos_needle);
+    this->line->y1 = this->circle->y + this->start * (this->circle->r * sin_needle);
 
-    this->line->x2 = this->circle->x + (this->circle->r * cos_needle);
-    this->line->y2 = this->circle->y + (this->circle->r * sin_needle);
+    this->line->x2 = this->circle->x + this->end * (this->circle->r * cos_needle);
+    this->line->y2 = this->circle->y + this->end * (this->circle->r * sin_needle);
 }
 
 void App::NextFrame()

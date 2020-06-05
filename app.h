@@ -48,6 +48,8 @@ private:
     Line *line = new Line();
 
     bool isRunning = false;
+    float start = 0;
+    float end = 1;
     double currentReading = 0;
     double currentAngle = 0;
     double readingAtLastImageSave = 0;
