@@ -323,7 +323,7 @@ void App::FindNeedle()
 
                 // Redness metric. This came from the previous version of the
                 // program. It seems to work pretty well.
-                sum += (double)(2 * r + b + g) / 4;
+                sum += (double)(2 * r) / (double)(b + g);
             }
             else
             {
@@ -333,7 +333,7 @@ void App::FindNeedle()
 
         double redness = sum / (double)this->circle->r;
 
-        if (isnan(max_redness) || redness < max_redness)
+        if (isnan(max_redness) || redness > max_redness)
         {
             max_redness = redness;
             max_redness_angle = angle;
@@ -359,16 +359,30 @@ void App::NextFrame()
     this->image = this->pipeline->Capture();
 }
 
+double angle_diff(int a, int b) {
+    double diff1 = (b - a);
+    double diff2 = diff1 + 2 * M_PI;
+    double diff3 = diff1 - 2 * M_PI;
+
+    double absdiff1 = fabs(diff1);
+    double absdiff2 = fabs(diff2);
+    double absdiff3 = fabs(diff3);
+
+    if (absdiff1 <= absdiff2 && absdiff1 <= absdiff3)
+        return diff1;
+    else if (absdiff2 <= absdiff1 && absdiff2 <= absdiff3)
+        return diff2;
+    else if (absdiff3 <= absdiff1 && absdiff3 <= absdiff2)
+        return diff3;
+}
+
 void App::ProcessFrame()
 {
     // TODO make sure this is accurate.
 
     double prevAngle = this->currentAngle;
     this->FindNeedle();
-    double angleChange = this->currentAngle - prevAngle;
-    // Account for angle wrapping when computing the change
-    angleChange = fmod(angleChange, 2 * M_PI);
-    angleChange = fmin(2 * M_PI - angleChange, angleChange);
+    double angleChange = angle_diff(prevAngle, this->currentAngle);
 
     // One full rotation of the dial is 10 gallons
     this->currentReading += angleChange * (10 / (2 * M_PI));
