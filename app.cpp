@@ -359,7 +359,7 @@ void App::NextFrame()
     this->image = this->pipeline->Capture();
 }
 
-double angle_diff(int a, int b) {
+double angle_diff(double a, double b) {
     double diff1 = (b - a);
     double diff2 = diff1 + 2 * M_PI;
     double diff3 = diff1 - 2 * M_PI;
@@ -372,7 +372,7 @@ double angle_diff(int a, int b) {
         return diff1;
     else if (absdiff2 <= absdiff1 && absdiff2 <= absdiff3)
         return diff2;
-    else if (absdiff3 <= absdiff1 && absdiff3 <= absdiff2)
+    else // if (absdiff3 <= absdiff1 && absdiff3 <= absdiff2)
         return diff3;
 }
 
