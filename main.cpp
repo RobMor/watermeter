@@ -28,7 +28,6 @@ int main(int argc, char *argv[]) {
 
     // initialize GTK and GST
     gst_init(&argc, &argv);
-    gtk_init(&argc, &argv);
 
     App *app = new App(runTED, saveImages, saveAll);
     app->Run();

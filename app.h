@@ -56,17 +56,14 @@ private:
 
     Pipeline *pipeline;
     
+    GtkApplication *app;
     GtkWidget *window;
     GtkWidget *drawingArea;
     GtkWidget *numLabel;
 
     GdkPixbuf *image;
 
-    GMainLoop *loop;
-
-    void MakeWindow(int width, int height);
-    
-    void Refresh();
+    static void Activate(GApplication *app, App *self);
 
     static gboolean UpdateDrawingArea(GtkWidget *widget, cairo_t *cr, App *self);
     static gboolean KeyPress(GtkWidget *widget, GdkEventKey *event, App *self);
@@ -74,8 +71,10 @@ private:
     static gboolean ButtonRelease(GtkWidget *widget, GdkEventButton *event, App *self);
     static gboolean Motion(GtkWidget *widget, GdkEventMotion *event, App *self);
     
+    void MakeWindow();
     void ComputeImagePosition(double *ratio, double *xoffset, double *yoffset);
     void AskForReading();    
+    void Refresh();
     void NextFrame();
     void FindNeedle();
     void ProcessFrame();

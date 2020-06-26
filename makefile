@@ -1,7 +1,7 @@
 PKGS = gtk+-3.0 cairo gstreamer-1.0 gstreamer-app-1.0
 
 CC = g++
-FLAGS = -g -Wall
+FLAGS = -Wall
 CFLAGS = $(FLAGS) `pkg-config --cflags $(PKGS)`
 LDFLAGS = $(FLAGS) `pkg-config --libs $(PKGS)`
 

@@ -10,19 +10,28 @@ App::App(bool runTED, bool saveImages, bool saveAll)
 
     this->NextFrame();
 
-    this->MakeWindow(gdk_pixbuf_get_width(this->image), gdk_pixbuf_get_height(this->image));
+    this->app = gtk_application_new(NULL, G_APPLICATION_FLAGS_NONE);
+
+    g_signal_connect(G_APPLICATION(this->app), "activate", G_CALLBACK(App::Activate), this);
 }
 
 void App::Run()
 {
-    this->Refresh();
+    g_application_run(G_APPLICATION(this->app), 0, NULL);
 
-    gtk_main();
+    g_object_unref(this->app);
+
+    // TODO more cleanup
 }
 
-void App::MakeWindow(int width, int height)
+void App::Activate(GApplication *app, App *self) {
+    self->MakeWindow();
+    self->Refresh();
+}
+
+void App::MakeWindow()
 {
-    this->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    this->window = gtk_application_window_new(GTK_APPLICATION(this->app));
     gtk_window_set_default_size(GTK_WINDOW(this->window), 640, 360);
 
     g_signal_connect(this->window, "key-press-event", G_CALLBACK(App::KeyPress), this);
@@ -41,12 +50,12 @@ void App::MakeWindow(int width, int height)
                               GDK_BUTTON_RELEASE_MASK |
                               GDK_BUTTON_MOTION_MASK);
 
-    this->numLabel = gtk_label_new("");
+    this->numLabel = gtk_label_new(NULL);
 
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 
     gtk_box_pack_start(GTK_BOX(vbox), this->drawingArea, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(vbox), numLabel, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), this->numLabel, FALSE, FALSE, 0);
 
     gtk_container_add(GTK_CONTAINER(this->window), vbox);
 
@@ -66,7 +75,7 @@ void App::Refresh()
         asprintf(&label, "PAUSED - Current Reading: %010.2f", this->currentReading);
     }
 
-    gtk_label_set_text(GTK_LABEL(numLabel), label);
+    gtk_label_set_text(GTK_LABEL(this->numLabel), label);
 
     free(label);
 
