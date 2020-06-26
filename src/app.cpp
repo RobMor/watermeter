@@ -1,7 +1,6 @@
 #include "app.h"
 
-App::App(bool runTED, bool saveImages, bool saveAll)
-{
+App::App(bool runTED, bool saveImages, bool saveAll) {
     this->runTED = runTED;
     this->saveImages = saveImages;
     this->saveAll = saveAll;
@@ -12,11 +11,11 @@ App::App(bool runTED, bool saveImages, bool saveAll)
 
     this->app = gtk_application_new(NULL, G_APPLICATION_FLAGS_NONE);
 
-    g_signal_connect(G_APPLICATION(this->app), "activate", G_CALLBACK(App::Activate), this);
+    g_signal_connect(G_APPLICATION(this->app), "activate",
+                     G_CALLBACK(App::Activate), this);
 }
 
-void App::Run()
-{
+void App::Run() {
     g_application_run(G_APPLICATION(this->app), 0, NULL);
 
     g_object_unref(this->app);
@@ -29,26 +28,29 @@ void App::Activate(GApplication *app, App *self) {
     self->Refresh();
 }
 
-void App::MakeWindow()
-{
+void App::MakeWindow() {
     this->window = gtk_application_window_new(GTK_APPLICATION(this->app));
     gtk_window_set_default_size(GTK_WINDOW(this->window), 640, 360);
 
-    g_signal_connect(this->window, "key-press-event", G_CALLBACK(App::KeyPress), this);
+    g_signal_connect(this->window, "key-press-event", G_CALLBACK(App::KeyPress),
+                     this);
 
     this->drawingArea = gtk_drawing_area_new();
-    g_signal_connect(this->drawingArea, "draw", G_CALLBACK(App::UpdateDrawingArea), this);
-    g_signal_connect(this->drawingArea, "button-press-event", G_CALLBACK(App::ButtonPress), this);
-    g_signal_connect(this->drawingArea, "button-release-event", G_CALLBACK(App::ButtonRelease), this);
-    g_signal_connect(this->drawingArea, "motion-notify-event", G_CALLBACK(App::Motion), this);
-    
+    g_signal_connect(this->drawingArea, "draw",
+                     G_CALLBACK(App::UpdateDrawingArea), this);
+    g_signal_connect(this->drawingArea, "button-press-event",
+                     G_CALLBACK(App::ButtonPress), this);
+    g_signal_connect(this->drawingArea, "button-release-event",
+                     G_CALLBACK(App::ButtonRelease), this);
+    g_signal_connect(this->drawingArea, "motion-notify-event",
+                     G_CALLBACK(App::Motion), this);
+
     // Set a minimum size
     gtk_widget_set_size_request(this->drawingArea, 100, 100);
 
-    gtk_widget_add_events(this->drawingArea,
-                          GDK_BUTTON_PRESS_MASK |
-                              GDK_BUTTON_RELEASE_MASK |
-                              GDK_BUTTON_MOTION_MASK);
+    gtk_widget_add_events(this->drawingArea, GDK_BUTTON_PRESS_MASK |
+                                                 GDK_BUTTON_RELEASE_MASK |
+                                                 GDK_BUTTON_MOTION_MASK);
 
     this->numLabel = gtk_label_new(NULL);
 
@@ -62,27 +64,27 @@ void App::MakeWindow()
     gtk_widget_show_all(this->window);
 }
 
-void App::Refresh()
-{
+void App::Refresh() {
     char *label;
 
-    if (this->isRunning)
-    {
-        asprintf(&label, "RUNNING - Current Reading: %010.2f", this->currentReading);
-    }
-    else
-    {
-        asprintf(&label, "PAUSED - Current Reading: %010.2f", this->currentReading);
+    if (this->isRunning) {
+        asprintf(&label, "RUNNING - Current Reading: %010.2f",
+                 this->currentReading);
+    } else {
+        asprintf(&label, "PAUSED - Current Reading: %010.2f",
+                 this->currentReading);
     }
 
     gtk_label_set_text(GTK_LABEL(this->numLabel), label);
 
     free(label);
 
-    gdk_window_invalidate_rect(gtk_widget_get_window(this->window), NULL, FALSE);
+    gdk_window_invalidate_rect(gtk_widget_get_window(this->window), NULL,
+                               FALSE);
 }
 
-void App::ComputeImagePosition(double *ratio, double *xoffset, double *yoffset) {
+void App::ComputeImagePosition(double *ratio, double *xoffset,
+                               double *yoffset) {
     guint imageWidth = gdk_pixbuf_get_width(this->image);
     guint imageHeight = gdk_pixbuf_get_height(this->image);
 
@@ -91,9 +93,9 @@ void App::ComputeImagePosition(double *ratio, double *xoffset, double *yoffset) 
 
     double widthRatio = (double)areaWidth / (double)imageWidth;
     double heightRatio = (double)areaHeight / (double)imageHeight;
-    
+
     *ratio = fmin(widthRatio, heightRatio);
-    
+
     double extraWidth = (double)areaWidth - (imageWidth * *ratio);
     double extraHeight = (double)areaHeight - (imageHeight * *ratio);
 
@@ -101,26 +103,23 @@ void App::ComputeImagePosition(double *ratio, double *xoffset, double *yoffset) 
     *yoffset = (extraHeight / 2);
 }
 
-gboolean App::UpdateDrawingArea(GtkWidget *widget, cairo_t *cr, App *self)
-{
+gboolean App::UpdateDrawingArea(GtkWidget *widget, cairo_t *cr, App *self) {
     double ratio, xoffset, yoffset;
     self->ComputeImagePosition(&ratio, &xoffset, &yoffset);
 
     cairo_save(cr);
 
     cairo_set_source_rgb(cr, 0, 0, 0);
-    cairo_rectangle(cr, 0, 0, gtk_widget_get_allocated_width(widget), gtk_widget_get_allocated_height(widget));
+    cairo_rectangle(cr, 0, 0, gtk_widget_get_allocated_width(widget),
+                    gtk_widget_get_allocated_height(widget));
     cairo_fill(cr);
     cairo_stroke(cr);
-    
+
     cairo_translate(cr, xoffset, yoffset);
     cairo_scale(cr, ratio, ratio);
-    
+
     cairo_surface_t *surface = gdk_cairo_surface_create_from_pixbuf(
-            self->image, 
-            1, 
-            gtk_widget_get_window(self->window)
-        );
+        self->image, 1, gtk_widget_get_window(self->window));
     cairo_set_source_surface(cr, surface, 0, 0);
     cairo_paint(cr);
 
@@ -137,26 +136,21 @@ gboolean App::UpdateDrawingArea(GtkWidget *widget, cairo_t *cr, App *self)
     return TRUE;
 }
 
-gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self)
-{
+gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self) {
     if (event->type != GDK_KEY_PRESS)
         return FALSE;
 
-    if (self->isRunning)
-    {
-        switch (event->keyval)
-        {
+    if (self->isRunning) {
+        switch (event->keyval) {
         // Pause
         case GDK_KEY_space:
             self->isRunning = false;
 
-            if (self->frameTimeoutId != 0)
-            {
+            if (self->frameTimeoutId != 0) {
                 g_source_remove(self->frameTimeoutId);
                 self->frameTimeoutId = 0;
             }
-            if (self->runTED && self->frameTimeoutId != 0)
-            {
+            if (self->runTED && self->frameTimeoutId != 0) {
                 g_source_remove(self->tedTimeoutId);
                 self->tedTimeoutId = 0;
             }
@@ -166,39 +160,33 @@ gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self)
         default:
             return FALSE;
         }
-    }
-    else
-    {
-        switch (event->keyval)
-        {
+    } else {
+        switch (event->keyval) {
         // Play
-        case GDK_KEY_space:
-        {
+        case GDK_KEY_space: {
             self->isRunning = true;
 
             self->NextFrame();
             self->ProcessFrame();
 
-            if (self->frameTimeoutId != 0)
-            {
+            if (self->frameTimeoutId != 0) {
                 g_source_remove(self->frameTimeoutId);
             }
-            self->frameTimeoutId = g_timeout_add(FRAME_RATE, (GSourceFunc)App::FrameTimeout, self);
-            if (self->runTED)
-            {
-                if (self->tedTimeoutId != 0)
-                {
+            self->frameTimeoutId =
+                g_timeout_add(FRAME_RATE, (GSourceFunc)App::FrameTimeout, self);
+            if (self->runTED) {
+                if (self->tedTimeoutId != 0) {
                     g_source_remove(self->tedTimeoutId);
                 }
-                self->tedTimeoutId = g_timeout_add_seconds(3600, (GSourceFunc)App::TEDTimeout, self);
+                self->tedTimeoutId = g_timeout_add_seconds(
+                    3600, (GSourceFunc)App::TEDTimeout, self);
             }
 
             self->Refresh();
             return TRUE;
         }
         // Update the current frame
-        case GDK_KEY_Return:
-        {
+        case GDK_KEY_Return: {
             self->NextFrame();
             self->ProcessFrame();
             self->Refresh();
@@ -206,9 +194,9 @@ gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self)
             return TRUE;
         }
         // Move needle detection up
-        case GDK_KEY_j:
-        {
-            if ((event->state & gtk_accelerator_get_default_mod_mask()) == GDK_CONTROL_MASK) {
+        case GDK_KEY_j: {
+            if ((event->state & gtk_accelerator_get_default_mod_mask()) ==
+                GDK_CONTROL_MASK) {
                 self->start = fmin(self->end, self->start + 0.1);
             } else {
                 self->end = fmin(1, self->end + 0.1);
@@ -219,9 +207,9 @@ gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self)
             return TRUE;
         }
         // Move needle detection down
-        case GDK_KEY_k:
-        {
-            if ((event->state & gtk_accelerator_get_default_mod_mask()) == GDK_CONTROL_MASK) {
+        case GDK_KEY_k: {
+            if ((event->state & gtk_accelerator_get_default_mod_mask()) ==
+                GDK_CONTROL_MASK) {
                 self->start = fmax(0, self->start - 0.1);
             } else {
                 self->end = fmax(self->start, self->end - 0.1);
@@ -232,34 +220,29 @@ gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self)
             return TRUE;
         }
         // Ask the user for the current reading
-        case GDK_KEY_r:
-        {
+        case GDK_KEY_r: {
             self->AskForReading();
             self->Refresh();
             return TRUE;
         }
-        default:
-        {
+        default: {
             return FALSE;
         }
         }
     }
 }
 
-gboolean App::ButtonPress(GtkWidget *widget, GdkEventButton *event, App *self)
-{
-    switch (event->button)
-    {
+gboolean App::ButtonPress(GtkWidget *widget, GdkEventButton *event, App *self) {
+    switch (event->button) {
     // left button pressed
     case 1:
-        if (!self->isRunning)
-        {
+        if (!self->isRunning) {
             double ratio, xoffset, yoffset;
             self->ComputeImagePosition(&ratio, &xoffset, &yoffset);
 
             double x = ((double)event->x - xoffset) / ratio;
             double y = ((double)event->y - yoffset) / ratio;
-            
+
             // start dragging the circle
             self->circle->x = x;
             self->circle->y = y;
@@ -273,14 +256,12 @@ gboolean App::ButtonPress(GtkWidget *widget, GdkEventButton *event, App *self)
     }
 }
 
-gboolean App::ButtonRelease(GtkWidget *widget, GdkEventButton *event, App *self)
-{
-    switch (event->button)
-    {
+gboolean App::ButtonRelease(GtkWidget *widget, GdkEventButton *event,
+                            App *self) {
+    switch (event->button) {
     // left button released
     case 1:
-        if (!self->isRunning)
-        {
+        if (!self->isRunning) {
             self->FindNeedle();
             self->Refresh();
         }
@@ -290,13 +271,10 @@ gboolean App::ButtonRelease(GtkWidget *widget, GdkEventButton *event, App *self)
     }
 }
 
-gboolean App::Motion(GtkWidget *widget, GdkEventMotion *event, App *self)
-{
-    if (!self->isRunning)
-    {
+gboolean App::Motion(GtkWidget *widget, GdkEventMotion *event, App *self) {
+    if (!self->isRunning) {
         // left button is pressed; set new circle radius
-        if (event->state & GDK_BUTTON1_MASK)
-        {
+        if (event->state & GDK_BUTTON1_MASK) {
             double ratio, xoffset, yoffset;
             self->ComputeImagePosition(&ratio, &xoffset, &yoffset);
 
@@ -315,9 +293,10 @@ gboolean App::Motion(GtkWidget *widget, GdkEventMotion *event, App *self)
     return FALSE;
 }
 
-void App::AskForReading()
-{
-    GtkWidget *dialog = gtk_dialog_new_with_buttons("Reading", GTK_WINDOW(this->window), GTK_DIALOG_MODAL, "_OK", GTK_RESPONSE_OK, NULL);
+void App::AskForReading() {
+    GtkWidget *dialog = gtk_dialog_new_with_buttons(
+        "Reading", GTK_WINDOW(this->window), GTK_DIALOG_MODAL, "_OK",
+        GTK_RESPONSE_OK, NULL);
 
     GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 
@@ -343,8 +322,7 @@ void App::AskForReading()
 
 // Look around the user placed circle trying to find at which angle the
 // needle is currently pointing.
-void App::FindNeedle()
-{
+void App::FindNeedle() {
     if (this->circle->r <= 0)
         return;
 
@@ -360,21 +338,19 @@ void App::FindNeedle()
     double max_redness_angle = NAN;
 
     // Iterate angles
-    for (int t = 0; t < NUM_ANGLES; t++)
-    {
+    for (int t = 0; t < NUM_ANGLES; t++) {
         double angle = (2 * M_PI) * ((double)t / NUM_ANGLES);
         double cosa = std::cos(angle);
         double sina = std::sin(angle);
 
         double sum = 0;
         // Iterate radii
-        for (int d = this->start * this->circle->r; d < this->end * this->circle->r; d++)
-        {
+        for (int d = this->start * this->circle->r;
+             d < this->end * this->circle->r; d++) {
             int x = this->circle->x + (d * cosa);
             int y = this->circle->y + (d * sina);
 
-            if (x >= 0 && x < width && y >= 0 && y < height)
-            {
+            if (x >= 0 && x < width && y >= 0 && y < height) {
                 int index = (row_stride * y) + (x * 3);
 
                 int r = image[index];
@@ -384,17 +360,14 @@ void App::FindNeedle()
                 // Redness metric. This came from the previous version of the
                 // program. It seems to work pretty well.
                 sum += (double)(2 * r) / (double)(b + g);
-            }
-            else
-            {
+            } else {
                 break;
             }
         }
 
         double redness = sum / (double)this->circle->r;
 
-        if (isnan(max_redness) || redness > max_redness)
-        {
+        if (isnan(max_redness) || redness > max_redness) {
             max_redness = redness;
             max_redness_angle = angle;
         }
@@ -407,17 +380,18 @@ void App::FindNeedle()
     double cos_needle = std::cos(max_redness_angle);
     double sin_needle = std::sin(max_redness_angle);
 
-    this->line->x1 = this->circle->x + this->start * (this->circle->r * cos_needle);
-    this->line->y1 = this->circle->y + this->start * (this->circle->r * sin_needle);
+    this->line->x1 =
+        this->circle->x + this->start * (this->circle->r * cos_needle);
+    this->line->y1 =
+        this->circle->y + this->start * (this->circle->r * sin_needle);
 
-    this->line->x2 = this->circle->x + this->end * (this->circle->r * cos_needle);
-    this->line->y2 = this->circle->y + this->end * (this->circle->r * sin_needle);
+    this->line->x2 =
+        this->circle->x + this->end * (this->circle->r * cos_needle);
+    this->line->y2 =
+        this->circle->y + this->end * (this->circle->r * sin_needle);
 }
 
-void App::NextFrame()
-{
-    this->image = this->pipeline->Capture();
-}
+void App::NextFrame() { this->image = this->pipeline->Capture(); }
 
 double angle_diff(double a, double b) {
     double diff1 = (b - a);
@@ -436,8 +410,7 @@ double angle_diff(double a, double b) {
         return diff3;
 }
 
-void App::ProcessFrame()
-{
+void App::ProcessFrame() {
     // TODO make sure this is accurate.
 
     double prevAngle = this->currentAngle;
@@ -457,22 +430,22 @@ void App::ProcessFrame()
     fprintf(outfile, "%s,%f\n", dateString, this->currentReading);
     fclose(outfile);
 
-    if (this->saveImages && (this->saveAll || fabs(this->readingAtLastImageSave - this->currentReading) > 10))
-    {
+    if (this->saveImages &&
+        (this->saveAll ||
+         fabs(this->readingAtLastImageSave - this->currentReading) > 10)) {
         this->readingAtLastImageSave = this->currentReading;
 
         char fileName[64];
         mkdir(IMAGES_FOLDER, 0777);
-        strftime(fileName, 64, IMAGES_FOLDER "/%Y-%m-%dT%H_%M_%S.jpg", localtime(&now));
+        strftime(fileName, 64, IMAGES_FOLDER "/%Y-%m-%dT%H_%M_%S.jpg",
+                 localtime(&now));
 
         gdk_pixbuf_save(this->image, fileName, "jpeg", NULL, NULL);
     }
 }
 
-gboolean App::FrameTimeout(App *self)
-{
-    if (self->isRunning)
-    {
+gboolean App::FrameTimeout(App *self) {
+    if (self->isRunning) {
         self->NextFrame();
         self->ProcessFrame();
         self->Refresh();
@@ -481,10 +454,8 @@ gboolean App::FrameTimeout(App *self)
     return self->isRunning;
 }
 
-gboolean App::TEDTimeout(App *self)
-{
-    if (self->isRunning && self->runTED)
-    {
+gboolean App::TEDTimeout(App *self) {
+    if (self->isRunning && self->runTED) {
         system(TED_PATH " auto");
     }
 

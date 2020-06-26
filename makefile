@@ -12,7 +12,7 @@ BUILDDIR = target
 SRCS = $(wildcard $(SRCDIR)/*.cpp)
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(BUILDDIR)/%.o, $(SRCS))
 
-.PHONY: all directories run clean cleanall
+.PHONY: all directories run format clean cleanall
 
 all: directories $(EXEC)
 
@@ -29,6 +29,9 @@ $(OBJS): $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 
 run: all
 	./$(EXEC)
+
+format:
+	clang-format -i $(wildcard $(SRCDIR)/*)
 
 clean:
 	rm -rf $(BUILDDIR)

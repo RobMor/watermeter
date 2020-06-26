@@ -9,18 +9,18 @@ int main(int argc, char *argv[]) {
         if (argv[i][0] == '-') {
             for (int j = 1; argv[i][j]; j++) {
                 switch (argv[i][j]) {
-                    case 's':
-                        saveImages = true;
-                        break;
-                    case 'a':
-                        saveAll = true;
-                        break;
-                    case 't':
-                        runTED = true;
-                        break;
-                    default:
-                        g_print("Unrecognized option %c\n", argv[i][j]);
-                        exit(1);
+                case 's':
+                    saveImages = true;
+                    break;
+                case 'a':
+                    saveAll = true;
+                    break;
+                case 't':
+                    runTED = true;
+                    break;
+                default:
+                    g_print("Unrecognized option %c\n", argv[i][j]);
+                    exit(1);
                 }
             }
         }
@@ -31,6 +31,6 @@ int main(int argc, char *argv[]) {
 
     App *app = new App(runTED, saveImages, saveAll);
     app->Run();
-    
+
     return 0;
 }

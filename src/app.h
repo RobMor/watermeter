@@ -1,21 +1,20 @@
 #ifndef APP_H
 #define APP_H
 
-#include <math.h> // Simple math functions
-#include <time.h> // Simple time functions
-#include <assert.h> // Invariant assertions
-#include <sys/stat.h> // Directory creation
+#include <assert.h>                // Invariant assertions
+#include <cairo.h>                 // Drawing functions
+#include <gdk-pixbuf/gdk-pixbuf.h> // Functions for manipulating GDK Pixbufs
+#include <gdk/gdk.h>               // Tools for working with gtk
+#include <gdk/gdkkeysyms.h>        // Provides the key press macros
+#include <gtk/gtk.h>               // UI library
+#include <math.h>                  // Simple math functions
+#include <sys/stat.h>              // Directory creation
+#include <time.h>                  // Simple time functions
+
 #include <algorithm> // Max element algorithm
 
-#include <gdk/gdk.h> // Tools for working with gtk
-#include <gtk/gtk.h> // UI library
-#include <gdk/gdkkeysyms.h> // Provides the key press macros
-#include <gdk-pixbuf/gdk-pixbuf.h> // Functions for manipulating GDK Pixbufs
-#include <cairo.h> // Drawing functions
-
-#include "pipeline.h"
-
 #include "config.h"
+#include "pipeline.h"
 
 class Circle {
 public:
@@ -55,7 +54,7 @@ private:
     double readingAtLastImageSave = 0;
 
     Pipeline *pipeline;
-    
+
     GtkApplication *app;
     GtkWidget *window;
     GtkWidget *drawingArea;
@@ -65,15 +64,18 @@ private:
 
     static void Activate(GApplication *app, App *self);
 
-    static gboolean UpdateDrawingArea(GtkWidget *widget, cairo_t *cr, App *self);
+    static gboolean UpdateDrawingArea(GtkWidget *widget, cairo_t *cr,
+                                      App *self);
     static gboolean KeyPress(GtkWidget *widget, GdkEventKey *event, App *self);
-    static gboolean ButtonPress(GtkWidget *widget, GdkEventButton *event, App *self);
-    static gboolean ButtonRelease(GtkWidget *widget, GdkEventButton *event, App *self);
+    static gboolean ButtonPress(GtkWidget *widget, GdkEventButton *event,
+                                App *self);
+    static gboolean ButtonRelease(GtkWidget *widget, GdkEventButton *event,
+                                  App *self);
     static gboolean Motion(GtkWidget *widget, GdkEventMotion *event, App *self);
-    
+
     void MakeWindow();
     void ComputeImagePosition(double *ratio, double *xoffset, double *yoffset);
-    void AskForReading();    
+    void AskForReading();
     void Refresh();
     void NextFrame();
     void FindNeedle();
@@ -83,6 +85,7 @@ private:
     static gboolean FrameTimeout(App *self);
     guint tedTimeoutId = 0;
     static gboolean TEDTimeout(App *self);
+
 public:
     App(bool runTED, bool saveImages, bool saveAll);
 

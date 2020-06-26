@@ -9,7 +9,7 @@ Pipeline::Pipeline() {
 
     /* ------ Create pipeline ------ */
     this->pipeline = gst_pipeline_new("watermeter-webcam");
-    
+
     /* ------ Create pipeline elements ------ */
 
     // Video4Linux source (what the webcam uses)
@@ -20,14 +20,16 @@ Pipeline::Pipeline() {
     converter = gst_element_factory_make("videoconvert", "converter");
 
     // GstAppSink that we can get data from
-    this->sink = GST_APP_SINK_CAST(gst_element_factory_make("appsink", "appsink"));
+    this->sink =
+        GST_APP_SINK_CAST(gst_element_factory_make("appsink", "appsink"));
     // Only allow the AppSink to only store one buffer (aka frame)
     gst_app_sink_set_max_buffers(sink, 1);
     // Tell the AppSink to drop old buffers when we run out of space
     gst_app_sink_set_drop(sink, true);
     // We only want raw RGB data in this sink so we make caps to filter out
     // everything else
-    caps = gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGB", NULL);
+    caps = gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGB",
+                               NULL);
     // Apply the caps to our sink
     gst_app_sink_set_caps(sink, caps);
     gst_caps_unref(caps); // GstCaps are refcounted...
@@ -36,14 +38,14 @@ Pipeline::Pipeline() {
 
     // Add a message handler to the pipeline (called bus handler in GST world)
     bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
-    gst_bus_add_watch(bus, (GstBusFunc) BusHandler, NULL);
+    gst_bus_add_watch(bus, (GstBusFunc)BusHandler, NULL);
     g_object_unref(bus);
 
     // Add all previously created elements to the pipeline
     gst_bin_add_many(GST_BIN(pipeline), source, converter, sink, NULL);
 
     // Link the elements together
-    gst_element_link_many(source, converter, (GstElement*)sink, NULL);
+    gst_element_link_many(source, converter, (GstElement *)sink, NULL);
 
     /* ------ Start the pipeline ------ */
 
@@ -62,7 +64,7 @@ Pipeline::~Pipeline() {
     gst_object_unref(this->sink);
 }
 
-GdkPixbuf* Pipeline::Capture() {
+GdkPixbuf *Pipeline::Capture() {
     GstSample *sample;
 
     // Pull a sample (aka frame) from the sink blocking until one is available
@@ -76,7 +78,7 @@ GdkPixbuf* Pipeline::Capture() {
         gint width, height;
         GstMapInfo map;
         gboolean res = true;
-        
+
         // Get the caps from the sample
         caps = gst_sample_get_caps(sample);
 
@@ -84,7 +86,7 @@ GdkPixbuf* Pipeline::Capture() {
             g_print("Could not get format of frame\n");
             exit(1);
         }
-        
+
         // Get the structure behind the caps so we can grab height/width from
         // it
         s = gst_caps_get_structure(caps, 0);
@@ -95,15 +97,15 @@ GdkPixbuf* Pipeline::Capture() {
             g_print("Could not get dimensions of frame\n");
             exit(1);
         }
-        
+
         // Get the buffer from the sample so we can access the raw data
         buffer = gst_sample_get_buffer(sample);
 
         // Map the buffer to map (dunno why we need to do this)
         if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
-            pixbuf = gdk_pixbuf_new_from_data(map.data,
-                    GDK_COLORSPACE_RGB, FALSE, 8, width, height,
-                    GST_ROUND_UP_4 (width * 3), NULL, NULL);
+            pixbuf = gdk_pixbuf_new_from_data(
+                map.data, GDK_COLORSPACE_RGB, FALSE, 8, width, height,
+                GST_ROUND_UP_4(width * 3), NULL, NULL);
 
             gst_buffer_unmap(buffer, &map);
         } else {
@@ -115,7 +117,8 @@ GdkPixbuf* Pipeline::Capture() {
         return pixbuf;
     } else {
         if (gst_app_sink_is_eos(sink)) {
-            g_print("Could not get frame because there are no more frames left\n");
+            g_print(
+                "Could not get frame because there are no more frames left\n");
         } else {
             g_print("Could not get frame (not EOS)\n");
         }
@@ -126,17 +129,16 @@ GdkPixbuf* Pipeline::Capture() {
 // A callback for the GStreamer bus. Basically handles any errors that occur.
 gboolean BusHandler(GstBus *bus, GstMessage *msg, gpointer *data) {
     switch (GST_MESSAGE_TYPE(msg)) {
-        case GST_MESSAGE_ERROR:
-            GError *err;
-            gchar *debug;
-            gst_message_parse_error(msg, &err, &debug);
-            g_print("%s\n%s\n", err->message, debug);
-            g_error_free(err);
-            g_free(debug);
-            exit(1);
-            break;
-        default:
-            return TRUE;
+    case GST_MESSAGE_ERROR:
+        GError *err;
+        gchar *debug;
+        gst_message_parse_error(msg, &err, &debug);
+        g_print("%s\n%s\n", err->message, debug);
+        g_error_free(err);
+        g_free(debug);
+        exit(1);
+        break;
+    default:
+        return TRUE;
     }
 }
-
