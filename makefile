@@ -2,8 +2,8 @@ PKGS = gtk+-3.0 cairo gstreamer-1.0 gstreamer-app-1.0
 
 CXX = g++
 FLAGS = -Wall
-CPPFLAGS = $(FLAGS) `pkg-config --cflags $(PKGS)`
-LDLIBS = `pkg-config --libs $(PKGS)`
+CPPFLAGS = $(FLAGS) $(shell pkg-config --cflags $(PKGS))
+LDLIBS = $(shell pkg-config --libs $(PKGS))
 
 EXEC = watermeter
 SRCDIR = src
@@ -31,7 +31,7 @@ run: all
 	./$(EXEC)
 
 clean:
-	rm -rf target
+	rm -rf $(BUILDDIR)
 
 cleanall: clean
-	rm watermeter
+	rm $(EXEC)
