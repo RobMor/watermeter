@@ -12,7 +12,7 @@ BUILDDIR = target
 SRCS = $(wildcard $(SRCDIR)/*.cpp)
 OBJS = $(patsubst $(SRCDIR)/%.cpp, $(BUILDDIR)/%.o, $(SRCS))
 
-.PHONY: all run clean directories
+.PHONY: all directories run clean cleanall
 
 all: directories $(EXEC)
 
