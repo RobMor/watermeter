@@ -1,6 +1,7 @@
+watermeter
 .vscode/*
 images/*
-ocr
+target/*
 *.o
 *.png
 *.zip
