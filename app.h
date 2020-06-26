@@ -19,9 +19,9 @@
 
 class Circle {
 public:
-    int x;
-    int y;
-    int r;
+    double x;
+    double y;
+    double r;
 
     void Draw(cairo_t *cr) {
         cairo_arc(cr, this->x, this->y, this->r, 0, 2 * M_PI);
@@ -30,7 +30,7 @@ public:
 
 class Line {
 public:
-    int x1, y1, x2, y2;
+    double x1, y1, x2, y2;
 
     void Draw(cairo_t *cr) {
         cairo_move_to(cr, this->x1, this->y1);
@@ -73,7 +73,8 @@ private:
     static gboolean ButtonPress(GtkWidget *widget, GdkEventButton *event, App *self);
     static gboolean ButtonRelease(GtkWidget *widget, GdkEventButton *event, App *self);
     static gboolean Motion(GtkWidget *widget, GdkEventMotion *event, App *self);
-
+    
+    void ComputeImagePosition(double *ratio, double *xoffset, double *yoffset);
     void AskForReading();    
     void NextFrame();
     void FindNeedle();

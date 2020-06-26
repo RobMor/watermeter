@@ -23,6 +23,7 @@ void App::Run()
 void App::MakeWindow(int width, int height)
 {
     this->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_default_size(GTK_WINDOW(this->window), 640, 360);
 
     g_signal_connect(this->window, "key-press-event", G_CALLBACK(App::KeyPress), this);
 
@@ -31,8 +32,9 @@ void App::MakeWindow(int width, int height)
     g_signal_connect(this->drawingArea, "button-press-event", G_CALLBACK(App::ButtonPress), this);
     g_signal_connect(this->drawingArea, "button-release-event", G_CALLBACK(App::ButtonRelease), this);
     g_signal_connect(this->drawingArea, "motion-notify-event", G_CALLBACK(App::Motion), this);
-
-    gtk_widget_set_size_request(this->drawingArea, width, height);
+    
+    // Set a minimum size
+    gtk_widget_set_size_request(this->drawingArea, 100, 100);
 
     gtk_widget_add_events(this->drawingArea,
                           GDK_BUTTON_PRESS_MASK |
@@ -43,7 +45,7 @@ void App::MakeWindow(int width, int height)
 
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
 
-    gtk_box_pack_start(GTK_BOX(vbox), this->drawingArea, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), this->drawingArea, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(vbox), numLabel, FALSE, FALSE, 0);
 
     gtk_container_add(GTK_CONTAINER(this->window), vbox);
@@ -57,11 +59,11 @@ void App::Refresh()
 
     if (this->isRunning)
     {
-        asprintf(&label, "RUNNING - Current Reading: %09.1f", this->currentReading);
+        asprintf(&label, "RUNNING - Current Reading: %010.2f", this->currentReading);
     }
     else
     {
-        asprintf(&label, "PAUSED - Current Reading: %09.1f", this->currentReading);
+        asprintf(&label, "PAUSED - Current Reading: %010.2f", this->currentReading);
     }
 
     gtk_label_set_text(GTK_LABEL(numLabel), label);
@@ -71,13 +73,47 @@ void App::Refresh()
     gdk_window_invalidate_rect(gtk_widget_get_window(this->window), NULL, FALSE);
 }
 
+void App::ComputeImagePosition(double *ratio, double *xoffset, double *yoffset) {
+    guint imageWidth = gdk_pixbuf_get_width(this->image);
+    guint imageHeight = gdk_pixbuf_get_height(this->image);
+
+    guint areaWidth = gtk_widget_get_allocated_width(this->drawingArea);
+    guint areaHeight = gtk_widget_get_allocated_height(this->drawingArea);
+
+    double widthRatio = (double)areaWidth / (double)imageWidth;
+    double heightRatio = (double)areaHeight / (double)imageHeight;
+    
+    *ratio = fmin(widthRatio, heightRatio);
+    
+    double extraWidth = (double)areaWidth - (imageWidth * *ratio);
+    double extraHeight = (double)areaHeight - (imageHeight * *ratio);
+
+    *xoffset = (extraWidth / 2);
+    *yoffset = (extraHeight / 2);
+}
+
 gboolean App::UpdateDrawingArea(GtkWidget *widget, cairo_t *cr, App *self)
 {
+    double ratio, xoffset, yoffset;
+    self->ComputeImagePosition(&ratio, &xoffset, &yoffset);
+
     cairo_save(cr);
 
-    cairo_set_source_surface(cr, gdk_cairo_surface_create_from_pixbuf(self->image, 1, gtk_widget_get_window(self->window)), 0, 0);
-    cairo_rectangle(cr, 0, 0, gdk_pixbuf_get_width(self->image), gdk_pixbuf_get_height(self->image));
+    cairo_set_source_rgb(cr, 0, 0, 0);
+    cairo_rectangle(cr, 0, 0, gtk_widget_get_allocated_width(widget), gtk_widget_get_allocated_height(widget));
     cairo_fill(cr);
+    cairo_stroke(cr);
+    
+    cairo_translate(cr, xoffset, yoffset);
+    cairo_scale(cr, ratio, ratio);
+    
+    cairo_surface_t *surface = gdk_cairo_surface_create_from_pixbuf(
+            self->image, 
+            1, 
+            gtk_widget_get_window(self->window)
+        );
+    cairo_set_source_surface(cr, surface, 0, 0);
+    cairo_paint(cr);
 
     cairo_set_source_rgb(cr, 1, 0, 0);
     self->circle->Draw(cr);
@@ -209,9 +245,15 @@ gboolean App::ButtonPress(GtkWidget *widget, GdkEventButton *event, App *self)
     case 1:
         if (!self->isRunning)
         {
+            double ratio, xoffset, yoffset;
+            self->ComputeImagePosition(&ratio, &xoffset, &yoffset);
+
+            double x = ((double)event->x - xoffset) / ratio;
+            double y = ((double)event->y - yoffset) / ratio;
+            
             // start dragging the circle
-            self->circle->x = event->x;
-            self->circle->y = event->y;
+            self->circle->x = x;
+            self->circle->y = y;
             self->circle->r = 0;
 
             self->line = new Line();
@@ -246,8 +288,14 @@ gboolean App::Motion(GtkWidget *widget, GdkEventMotion *event, App *self)
         // left button is pressed; set new circle radius
         if (event->state & GDK_BUTTON1_MASK)
         {
-            int dx = event->x - self->circle->x;
-            int dy = event->y - self->circle->y;
+            double ratio, xoffset, yoffset;
+            self->ComputeImagePosition(&ratio, &xoffset, &yoffset);
+
+            double x = ((double)event->x - xoffset) / ratio;
+            double y = ((double)event->y - yoffset) / ratio;
+
+            int dx = x - self->circle->x;
+            int dy = y - self->circle->y;
 
             self->circle->r = sqrt(dx * dx + dy * dy);
 
@@ -264,19 +312,22 @@ void App::AskForReading()
 
     GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 
-    GtkWidget *label = gtk_label_new("Current whole number reading of dial:");
+    GtkWidget *label = gtk_label_new("Current reading of dial:");
 
-    GtkWidget *spin = gtk_spin_button_new_with_range(0, 9999999, 1);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(spin), this->currentReading);
+    GtkWidget *entry = gtk_entry_new();
+
+    char *currentReading;
+    asprintf(&currentReading, "%f", this->currentReading);
+    gtk_entry_set_text(GTK_ENTRY(entry), currentReading);
 
     gtk_container_add(GTK_CONTAINER(content_area), label);
-    gtk_container_add(GTK_CONTAINER(content_area), spin);
+    gtk_container_add(GTK_CONTAINER(content_area), entry);
 
     gtk_widget_show_all(dialog);
     gtk_dialog_run(GTK_DIALOG(dialog));
 
-    gtk_spin_button_update(GTK_SPIN_BUTTON(spin));
-    this->currentReading = gtk_spin_button_get_value(GTK_SPIN_BUTTON(spin));
+    const char *input = gtk_entry_get_text(GTK_ENTRY(entry));
+    this->currentReading = atof(input);
 
     gtk_widget_destroy(dialog);
 }
