@@ -1,40 +1,31 @@
 PKGS = gtk+-3.0 cairo gstreamer-1.0 gstreamer-app-1.0
 
-CXX = g++
+CC = g++
 FLAGS = -Wall
-CPPFLAGS = $(FLAGS) $(shell pkg-config --cflags $(PKGS))
-LDLIBS = $(shell pkg-config --libs $(PKGS))
+CFLAGS = $(FLAGS) `pkg-config --cflags $(PKGS)`
+LDFLAGS = $(FLAGS) `pkg-config --libs $(PKGS)`
 
-EXEC = watermeter
-SRCDIR = src
-BUILDDIR = target
+SRCS = main.cpp app.cpp app.h pipeline.cpp pipeline.h config.h README makefile
+OBJS = main.o pipeline.o app.o
 
-SRCS = $(wildcard $(SRCDIR)/*.cpp)
-OBJS = $(patsubst $(SRCDIR)/%.cpp, $(BUILDDIR)/%.o, $(SRCS))
+.cpp.o:
+	$(CC) -c $(CFLAGS) $<
 
-.PHONY: all directories run format clean cleanall
+all: watermeter
 
-all: directories $(EXEC)
+watermeter: $(OBJS)
+	$(CC) -o watermeter $(OBJS) $(LDFLAGS)
 
-directories: $(BUILDDIR)
-
-$(BUILDDIR):
-	mkdir -p $(BUILDDIR)
-
-$(EXEC): $(OBJS)
-	$(CXX) $(LDLIBS) -o $(EXEC) $(OBJS)
-
-$(OBJS): $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
-	$(CXX) $(CPPFLAGS) -o $@ -c $<
-
-run: all
-	./$(EXEC)
-
-format:
-	clang-format -i $(wildcard $(SRCDIR)/*)
+run: watermeter
+	./watermeter
 
 clean:
-	rm -rf $(BUILDDIR)
+	rm -f $(OBJS) watermeter.zip
 
-cleanall: clean
-	rm $(EXEC)
+zip: $(SRCS)
+	zip watermeter.zip $(SRCS) makefile
+
+main.o: main.cpp app.h pipeline.h makefile
+app.o: app.cpp app.h config.h makefile
+pipeline.o: pipeline.cpp pipeline.h makefile
+
