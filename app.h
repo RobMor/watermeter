@@ -42,6 +42,8 @@ private:
     bool runTED;
     bool saveImages;
     bool saveAll;
+    bool saveDebug;
+    bool saveHist;
 
     Circle *circle = new Circle();
     Line *line = new Line();
@@ -52,6 +54,8 @@ private:
     double currentReading = 0;
     double currentAngle = 0;
     double readingAtLastImageSave = 0;
+
+    double hist[NUM_ANGLES];
 
     Pipeline *pipeline;
 
@@ -79,6 +83,7 @@ private:
     void Refresh();
     void NextFrame();
     void FindNeedle();
+    void DrawImage(cairo_t *cr);
     void ProcessFrame();
 
     guint frameTimeoutId = 0;
@@ -87,7 +92,7 @@ private:
     static gboolean TEDTimeout(App *self);
 
 public:
-    App(bool runTED, bool saveImages, bool saveAll);
+    App(bool runTED, bool saveImages, bool saveAll, bool saveDebug, bool saveHist);
 
     void Run();
     void Quit();

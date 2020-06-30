@@ -1,11 +1,15 @@
 #include "app.h"
 
-App::App(bool runTED, bool saveImages, bool saveAll) {
+App::App(bool runTED, bool saveImages, bool saveAll, bool saveDebug, bool saveHist) {
     this->runTED = runTED;
     this->saveImages = saveImages;
     this->saveAll = saveAll;
+    this->saveDebug = saveDebug;
+    this->saveHist = saveHist;
 
     this->pipeline = new Pipeline();
+
+    this->image = NULL;
 
     this->NextFrame();
 
@@ -118,22 +122,30 @@ gboolean App::UpdateDrawingArea(GtkWidget *widget, cairo_t *cr, App *self) {
     cairo_translate(cr, xoffset, yoffset);
     cairo_scale(cr, ratio, ratio);
 
-    cairo_surface_t *surface = gdk_cairo_surface_create_from_pixbuf(
-        self->image, 1, gtk_widget_get_window(self->window));
-    cairo_set_source_surface(cr, surface, 0, 0);
-    cairo_paint(cr);
-
-    cairo_set_source_rgb(cr, 1, 0, 0);
-    self->circle->Draw(cr);
-    cairo_stroke(cr);
-
-    cairo_set_source_rgb(cr, 0, 1, 0);
-    self->line->Draw(cr);
-    cairo_stroke(cr);
+    self->DrawImage(cr);
 
     cairo_restore(cr);
 
     return TRUE;
+}
+
+void App::DrawImage(cairo_t *cr) {
+    cairo_save(cr);
+
+    cairo_surface_t *surface = gdk_cairo_surface_create_from_pixbuf(
+        this->image, 1, gtk_widget_get_window(this->window));
+    cairo_set_source_surface(cr, surface, 0, 0);
+    cairo_paint(cr);
+
+    cairo_set_source_rgb(cr, 1, 0, 0);
+    this->circle->Draw(cr);
+    cairo_stroke(cr);
+
+    cairo_set_source_rgb(cr, 0, 1, 0);
+    this->line->Draw(cr);
+    cairo_stroke(cr);
+
+    cairo_restore(cr);
 }
 
 gboolean App::KeyPress(GtkWidget *widget, GdkEventKey *event, App *self) {
@@ -357,6 +369,9 @@ void App::FindNeedle() {
                 int g = image[index + 1];
                 int b = image[index + 2];
 
+                // TODO could cause division by zero errors when encountering
+                // pure red...
+
                 // Redness metric. This came from the previous version of the
                 // program. It seems to work pretty well.
                 sum += (double)(2 * r) / (double)(b + g);
@@ -366,6 +381,9 @@ void App::FindNeedle() {
         }
 
         double redness = sum / (double)this->circle->r;
+
+        if (this->saveHist)
+            this->hist[t] = redness;
 
         if (isnan(max_redness) || redness > max_redness) {
             max_redness = redness;
@@ -391,7 +409,11 @@ void App::FindNeedle() {
         this->circle->y + this->end * (this->circle->r * sin_needle);
 }
 
-void App::NextFrame() { this->image = this->pipeline->Capture(); }
+void App::NextFrame() {
+    if (this->image)
+        g_object_unref(this->image);
+    this->image = this->pipeline->Capture();
+}
 
 double angle_diff(double a, double b) {
     double diff1 = (b - a);
@@ -430,17 +452,46 @@ void App::ProcessFrame() {
     fprintf(outfile, "%s,%f\n", dateString, this->currentReading);
     fclose(outfile);
 
-    if (this->saveImages &&
-        (this->saveAll ||
-         fabs(this->readingAtLastImageSave - this->currentReading) > 10)) {
+    if (this->saveHist) {
+        FILE *histfile = fopen(HIST_FILE, "a");
+        fprintf(histfile, "%s", dateString);
+        for (int i = 0; i < NUM_ANGLES; i++)
+            fprintf(histfile, ",%f", this->hist[i]);
+        fprintf(histfile, "\n");
+        fclose(histfile);
+    }
+
+    if (this->saveAll || this->saveDebug ||
+            (this->saveImages && fabs(this->readingAtLastImageSave - this->currentReading) > 10)) {
         this->readingAtLastImageSave = this->currentReading;
 
         char fileName[64];
         mkdir(IMAGES_FOLDER, 0777);
         strftime(fileName, 64, IMAGES_FOLDER "/%Y-%m-%dT%H_%M_%S.jpg",
                  localtime(&now));
+        
+        if (this->saveAll || this->saveImages) {
+            gdk_pixbuf_save(this->image, fileName, "jpeg", NULL, NULL);
+        }
 
-        gdk_pixbuf_save(this->image, fileName, "jpeg", NULL, NULL);
+        if (this->saveDebug) {
+            int width = gdk_pixbuf_get_width(this->image);
+            int height = gdk_pixbuf_get_height(this->image);
+
+            cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, width, height);
+            cairo_t *cr = cairo_create(surface);
+
+            this->DrawImage(cr);
+
+            cairo_surface_flush(surface);
+
+            GdkPixbuf *drawnImage = gdk_pixbuf_get_from_surface(surface, 0, 0, width, height);            
+            gdk_pixbuf_save(drawnImage, fileName, "jpeg", NULL, NULL);
+
+            g_object_unref(drawnImage);
+            cairo_surface_destroy(surface);
+            cairo_destroy(cr);
+        }
     }
 }
 

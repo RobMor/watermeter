@@ -4,12 +4,14 @@ int main(int argc, char *argv[]) {
     bool saveImages = false;
     bool saveAll = false;
     bool runTED = false;
+    bool saveDebug = false;
+    bool saveHist = false;
 
     for (int i = 1; i < argc; i++) {
         if (argv[i][0] == '-') {
             for (int j = 1; argv[i][j]; j++) {
                 switch (argv[i][j]) {
-                case 's':
+                case 'i':
                     saveImages = true;
                     break;
                 case 'a':
@@ -17,6 +19,12 @@ int main(int argc, char *argv[]) {
                     break;
                 case 't':
                     runTED = true;
+                    break;
+                case 'd':
+                    saveDebug = true;
+                    break;
+                case 'h':
+                    saveHist = true;
                     break;
                 default:
                     g_print("Unrecognized option %c\n", argv[i][j]);
@@ -29,7 +37,7 @@ int main(int argc, char *argv[]) {
     // initialize GTK and GST
     gst_init(&argc, &argv);
 
-    App *app = new App(runTED, saveImages, saveAll);
+    App *app = new App(runTED, saveImages, saveAll, saveDebug, saveHist);
     app->Run();
 
     return 0;

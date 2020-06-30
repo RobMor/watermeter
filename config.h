@@ -10,5 +10,8 @@
 // The file to write the estimated readings to
 #define DATA_FILE "data.csv"
 
+// The file to write the histograms to
+#define HIST_FILE "hist.csv"
+
 // The folder in which to save frames to
 #define IMAGES_FOLDER "images"
