@@ -15,3 +15,6 @@
 
 // The folder in which to save frames to
 #define IMAGES_FOLDER "images"
+
+// The folder in which to save debug images to
+#define DEBUG_FOLDER "debug"

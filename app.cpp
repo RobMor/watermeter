@@ -461,7 +461,7 @@ void App::ProcessFrame() {
         fclose(histfile);
     }
 
-    if (this->saveAll || this->saveDebug ||
+    if (this->saveAll ||
             (this->saveImages && fabs(this->readingAtLastImageSave - this->currentReading) > 10)) {
         this->readingAtLastImageSave = this->currentReading;
 
@@ -470,28 +470,31 @@ void App::ProcessFrame() {
         strftime(fileName, 64, IMAGES_FOLDER "/%Y-%m-%dT%H_%M_%S.jpg",
                  localtime(&now));
         
-        if (this->saveAll || this->saveImages) {
-            gdk_pixbuf_save(this->image, fileName, "jpeg", NULL, NULL);
-        }
+        gdk_pixbuf_save(this->image, fileName, "jpeg", NULL, NULL);
+    }
 
-        if (this->saveDebug) {
-            int width = gdk_pixbuf_get_width(this->image);
-            int height = gdk_pixbuf_get_height(this->image);
+    if (this->saveDebug) {
+        char fileName[64];
+        mkdir(DEBUG_FOLDER, 0777);
+        strftime(fileName, 64, DEBUG_FOLDER "/%Y-%m-%dT%H_%M_%S.jpg", localtime(&now));
 
-            cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, width, height);
-            cairo_t *cr = cairo_create(surface);
+        int width = gdk_pixbuf_get_width(this->image);
+        int height = gdk_pixbuf_get_height(this->image);
 
-            this->DrawImage(cr);
+        cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, width, height);
+        cairo_t *cr = cairo_create(surface);
 
-            cairo_surface_flush(surface);
+        this->DrawImage(cr);
 
-            GdkPixbuf *drawnImage = gdk_pixbuf_get_from_surface(surface, 0, 0, width, height);            
-            gdk_pixbuf_save(drawnImage, fileName, "jpeg", NULL, NULL);
+        cairo_surface_flush(surface);
 
-            g_object_unref(drawnImage);
-            cairo_surface_destroy(surface);
-            cairo_destroy(cr);
-        }
+        GdkPixbuf *drawnImage = gdk_pixbuf_get_from_surface(surface, 0, 0, width, height);
+
+        gdk_pixbuf_save(drawnImage, fileName, "jpeg", NULL, NULL);
+
+        g_object_unref(drawnImage);
+        cairo_surface_destroy(surface);
+        cairo_destroy(cr);
     }
 }
 
