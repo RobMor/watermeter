@@ -62,13 +62,15 @@ int App::HandleCommandLine(Glib::RefPtr<Gio::ApplicationCommandLine> &cmd) {
 }
 
 void App::HandleActivate() {
-    // TODO make pipeline and get image from it...
+    web_cam_.Init();
 
     if (save_hist_)
         hist_ = new double[NUM_ANGLES];
     
     MakeWindow();
+    NextFrame();
     Refresh();
+
     window_->present();
 }
 
@@ -94,6 +96,11 @@ void App::MakeWindow() {
     vbox->pack_start(*label_);
 }
 
+void App::NextFrame() {
+    // TODO does the refptr clean itself up?
+    image_ = web_cam_.Capture()
+}
+
 void App::Refresh() {
     std::stringstream label_stream;
 
@@ -111,7 +118,7 @@ void App::Refresh() {
     label_->set_text(label_text);
 
     // TODO necessary?
-    // window_->queue_draw();
+    window_->queue_draw();
 }
 
 void App::HandleDraw(const Cairo::RefPtr<Cairo::Context> &cr) {

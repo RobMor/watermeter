@@ -19,7 +19,7 @@ public:
         cr->arc(x, y, r, 0, 2 * M_PI);
         cr->restore();
     }
-}
+};
 
 class Line {
 public:
@@ -31,7 +31,7 @@ public:
         cr->line_to(x2, y2);
         cr->restore();
     }
-}
+};
 
 class App : public Gtk::Application
 {
@@ -56,6 +56,7 @@ protected:
 
 private:
     void MakeWindow();
+    void NextFrame();
     void Refresh();
     void FindNeedle();
     void AskForReading();
@@ -65,7 +66,7 @@ private:
     void ComputeImagePosition(double &ratio, double &xoffset, double &yoffset);
     void DrawView(const Cairo::RefPtr<Cairo::Context> &cr);
 
-    Pipeline *pipeline_;
+    WebCam web_cam_;
 
     Glib::RefPtr<Gdk::Pixbuf> image_;
 
