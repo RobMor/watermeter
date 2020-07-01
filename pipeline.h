@@ -1,20 +1,23 @@
-#ifndef PIPELINE_H
-#define PIPELINE_H
+#ifndef __PIPELINE_H
+#define __PIPELINE_H
 
-#include <gdk-pixbuf/gdk-pixbuf.h>
-#include <gst/app/gstappsink.h>
-#include <gst/gst.h>
+#include <gdkmm.h>
+#include <gstreamermm.h>
 
-class Pipeline {
-private:
-    GstElement *pipeline;
-    GstAppSink *sink;
-
+class WebCam {
 public:
-    Pipeline();
-    ~Pipeline();
+    WebCam();
+    ~WebCam();
 
-    GdkPixbuf *Capture();
+    void Init();
+    Glib::RefPtr<Gdk::Pixbuf> Capture();
+
+protected:
+    bool BusHandler(const Glib::RefPtr<Gst::Bus> &bus, const Glib::RefPtr<Gst::Message> &message);
+
+private:
+    Glib::RefPtr<Gst::Pipeline> pipeline_;
+    Glib::RefPtr<Gst::AppSink> sink_;
 };
 
 #endif

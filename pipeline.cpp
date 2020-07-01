@@ -1,142 +1,155 @@
+#include <cstdlib> // Exit function
+#include <iostream> // Printing and stuff
+
 #include "pipeline.h"
 
 gboolean BusHandler(GstBus *bus, GstMessage *msg, gpointer *data);
 
-Pipeline::Pipeline() {
-    GstElement *source, *converter;
-    GstCaps *caps;
-    GstBus *bus;
-
+WebCam::WebCam() {
     /* ------ Create pipeline ------ */
-    this->pipeline = gst_pipeline_new("watermeter-webcam");
+    pipeline_ = Gst::Pipeline::create();
 
     /* ------ Create pipeline elements ------ */
 
     // Video4Linux source (what the webcam uses)
-    source = gst_element_factory_make("v4l2src", "webcam");
+    Glib::RefPtr<Gst::Element> source = Gst::ElementFactory::create_element("v4l2src");
 
     // A converter to convert the data from the webcam to any format we could
     // want (in this case we want raw rgb video)
-    converter = gst_element_factory_make("videoconvert", "converter");
+    Glib::RefPtr<Gst::VideoConvert> converter = Gst::VideoConvert::create();
 
     // GstAppSink that we can get data from
-    this->sink =
-        GST_APP_SINK_CAST(gst_element_factory_make("appsink", "appsink"));
+    sink_ = Gst::AppSink::create();
     // Only allow the AppSink to only store one buffer (aka frame)
-    gst_app_sink_set_max_buffers(sink, 1);
+    sink_->property_max_buffers().set_value(1);
     // Tell the AppSink to drop old buffers when we run out of space
-    gst_app_sink_set_drop(sink, true);
+    sink_->property_drop().set_value(true);
     // We only want raw RGB data in this sink so we make caps to filter out
     // everything else
-    caps = gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGB",
-                               NULL);
+    Glib::RefPtr<Gst::Caps> caps = Gst::Caps::create_simple("video/x-raw");
+    caps->set_simple("format", Gst::VIDEO_FORMAT_RGB); // TODO this might be wrong
+    // This is what it used to be
+    // caps = gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGB", NULL);
     // Apply the caps to our sink
-    gst_app_sink_set_caps(sink, caps);
-    gst_caps_unref(caps); // GstCaps are refcounted...
+    sink_->property_caps().set_value(caps);
 
     /* ------ Set up pipeline ------ */
 
     // Add a message handler to the pipeline (called bus handler in GST world)
-    bus = gst_pipeline_get_bus(GST_PIPELINE(pipeline));
-    gst_bus_add_watch(bus, (GstBusFunc)BusHandler, NULL);
-    g_object_unref(bus);
+    Glib::RefPtr<Gst::Bus> bus = pipeline_->get_bus();
+    bus->add_watch(sigc::mem_fun(this, WebCam::BusHandler));
 
     // Add all previously created elements to the pipeline
-    gst_bin_add_many(GST_BIN(pipeline), source, converter, sink, NULL);
-
+    pipeline_->add(source);
+    pipeline_->add(converter);
+    pipeline_->add(sink_);
+    
     // Link the elements together
-    gst_element_link_many(source, converter, (GstElement *)sink, NULL);
-
-    /* ------ Start the pipeline ------ */
-
-    // Tell the pipeline to start playing
-    gst_element_set_state(pipeline, GST_STATE_PLAYING);
-
-    // Wait until the pipeline actually starts playing
-    gst_element_get_state(pipeline, NULL, NULL, GST_CLOCK_TIME_NONE);
+    source->link(converter);
+    converter->link(sink_);
 }
 
-Pipeline::~Pipeline() {
+WebCam::~WebCam() {
     // Stop the pipeline
-    gst_element_set_state(this->pipeline, GST_STATE_NULL);
-    // Free objects
-    gst_object_unref(this->pipeline);
-    gst_object_unref(this->sink);
+    pipeline_->set_state(Gst::State::STATE_NULL);
 }
 
-GdkPixbuf *Pipeline::Capture() {
-    GstSample *sample;
+void WebCam::Init() {
+    // Start the pipeline and block until it actually starts
+    Gst::StateChangeReturn change = pipeline_->set_state(Gst::State::STATE_PLAYING);
 
+    if (change == Gst::StateChangeReturn::STATE_CHANGE_ASYNC) {
+        Gst::State state, pending;
+        Gst::StateChangeReturn ret = pipeline_->get_state(state, pending, Gst::CLOCK_TIME_NONE);
+        
+        if (ret == Gst::StateChangeReturn::STATE_CHANGE_FAILURE) {
+            std::cerr << "Failed to wait for pipeline to start playing" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    } else if (change == Gst::StateChangeReturn::STATE_CHANGE_FAILURE) {
+        std::cerr << "Failed to set pipeline to playing" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+Glib::RefPtr<Gdk::Pixbuf> WebCam::Capture() {
     // Pull a sample (aka frame) from the sink blocking until one is available
-    sample = gst_app_sink_pull_sample(sink);
+    Glib::RefPtr<Gst::Sample> sample = sink_->pull_sample();
 
     if (sample) {
-        GdkPixbuf *pixbuf;
-        GstBuffer *buffer;
-        GstCaps *caps;
-        GstStructure *s;
-        gint width, height;
-        GstMapInfo map;
-        gboolean res = true;
+        // GdkPixbuf *pixbuf;
+        // GstBuffer *buffer;
+        // GstCaps *caps;
+        // GstStructure *s;
+        // gint width, height;
+        // GstMapInfo map;
+        // gboolean res = true;
 
         // Get the caps from the sample
-        caps = gst_sample_get_caps(sample);
+        Glib::RefPtr<Gst::Caps> caps = sample->get_caps();
 
         if (!caps) {
-            g_print("Could not get format of frame\n");
-            exit(1);
+            std::cerr << "Could not get format of frame" << std::endl;
+            exit(EXIT_FAILURE);
         }
 
         // Get the structure behind the caps so we can grab height/width from
         // it
-        s = gst_caps_get_structure(caps, 0);
-        res |= gst_structure_get_int(s, "width", &width);
-        res |= gst_structure_get_int(s, "height", &height);
+        Gst::Structure structure = caps->get_structure(0);
+        
+        bool success;
+        int width, height;
+        success &= structure.get_field("width", width);
+        success &= structure.get_field("height", height);
 
-        if (!res) {
-            g_print("Could not get dimensions of frame\n");
-            exit(1);
+        if (!success) {
+            std::cerr << "Could not get dimensions of frame" << std::endl;
+            exit(EXIT_FAILURE);
         }
 
         // Get the buffer from the sample so we can access the raw data
-        buffer = gst_sample_get_buffer(sample);
+        Glib::RefPtr<Gst::Buffer> buffer = sample->get_buffer();
 
-        // Map the buffer to map (dunno why we need to do this)
-        if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
-            pixbuf = gdk_pixbuf_new_from_data(
-                map.data, GDK_COLORSPACE_RGB, FALSE, 8, width, height,
-                GST_ROUND_UP_4(width * 3), NULL, NULL);
-
-            gst_buffer_unmap(buffer, &map);
-        } else {
-            pixbuf = NULL;
+        if (!buffer) {
+            std::cerr << "Could not retreive buffer" << std::endl;
+            exit(EXIT_FAILURE);
         }
 
-        gst_sample_unref(sample);
+        Gst::MapInfo map_info;
+        // Get the spot in memory that the data is at.
+        if (buffer->map(map_info, Gst::MapFlags::MAP_READ)) {
+            Glib::RefPtr<Gdk::Pixbuf> pixbuf = Gdk::Pixbuf::create_from_data(
+                map_info.get_data(), Gdk::Colorspace::COLORSPACE_RGB, FALSE, 8,
+                width, height, GST_ROUND_UP_4(width * 3));
 
-        return pixbuf;
+            buffer->unmap(map_info);
+
+            return pixbuf;
+        } else {
+            std::cerr << "Could not retreive buffer data" << std::endl;
+            exit(EXIT_FAILURE);
+        }
     } else {
-        if (gst_app_sink_is_eos(sink)) {
-            g_print(
-                "Could not get frame because there are no more frames left\n");
+        if (sink_->property_eos().get_value()) {
+            std::cerr << "Could not get frame because there are no more frames left" << std::endl;
         } else {
-            g_print("Could not get frame (not EOS)\n");
+            std::cerr << "Could not get frame (not EOS)" << std::endl;
         }
-        exit(1);
+
+        exit(EXIT_FAILURE);
     }
 }
 
 // A callback for the GStreamer bus. Basically handles any errors that occur.
-gboolean BusHandler(GstBus *bus, GstMessage *msg, gpointer *data) {
-    switch (GST_MESSAGE_TYPE(msg)) {
-    case GST_MESSAGE_ERROR:
-        GError *err;
-        gchar *debug;
-        gst_message_parse_error(msg, &err, &debug);
-        g_print("%s\n%s\n", err->message, debug);
-        g_error_free(err);
-        g_free(debug);
-        exit(1);
+bool WebCam::BusHandler(const Glib::RefPtr<Gst::Bus> &bus, const Glib::RefPtr<Gst::Message> &message) {
+    switch (message->get_message_type()) {
+    case Gst::MessageType::MESSAGE_EOS:
+        std::cerr << "End of stream" << std::endl;
+        exit(EXIT_FAILURE);
+        break;
+    case Gst::MessageType::MESSAGE_ERROR:
+        std::cerr << "Error: " << Glib::RefPtr<Gst::MessageError>::cast_static(message)->parse_debug() << std::endl;
+        exit(EXIT_FAILURE);
         break;
     default:
         return TRUE;
