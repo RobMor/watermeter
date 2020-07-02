@@ -37,7 +37,7 @@ WebCam::WebCam() {
 
     // Add a message handler to the pipeline (called bus handler in GST world)
     Glib::RefPtr<Gst::Bus> bus = pipeline_->get_bus();
-    bus->add_watch(sigc::mem_fun(this, WebCam::BusHandler));
+    bus->add_watch(sigc::mem_fun(this, &WebCam::BusHandler));
 
     // Add all previously created elements to the pipeline
     pipeline_->add(source);
@@ -77,14 +77,6 @@ Glib::RefPtr<Gdk::Pixbuf> WebCam::Capture() {
     Glib::RefPtr<Gst::Sample> sample = sink_->pull_sample();
 
     if (sample) {
-        // GdkPixbuf *pixbuf;
-        // GstBuffer *buffer;
-        // GstCaps *caps;
-        // GstStructure *s;
-        // gint width, height;
-        // GstMapInfo map;
-        // gboolean res = true;
-
         // Get the caps from the sample
         Glib::RefPtr<Gst::Caps> caps = sample->get_caps();
 
@@ -97,7 +89,7 @@ Glib::RefPtr<Gdk::Pixbuf> WebCam::Capture() {
         // it
         Gst::Structure structure = caps->get_structure(0);
         
-        bool success;
+        bool success = false;
         int width, height;
         success &= structure.get_field("width", width);
         success &= structure.get_field("height", height);
