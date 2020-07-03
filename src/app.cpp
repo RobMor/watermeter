@@ -223,7 +223,7 @@ void App::FindNeedle() {
     if (std::isnan(max_redness))
         max_redness_angle = 0;
 
-    angle_diff_ = AngleDiff(max_redness_angle, angle_);
+    angle_diff_ = AngleDiff(angle_, max_redness_angle);
     angle_ = max_redness_angle;
 
     // One full rotation of the dial is 10 gallons
