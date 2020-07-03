@@ -512,7 +512,7 @@ bool App::HandleFrameTimeout() {
 
 bool App::HandleTEDTimeout() {
     if (running_ && run_ted_) {
-        system(TED_PATH " auto");
+        int result = system(TED_PATH " auto");
     }
 
     return running_;
