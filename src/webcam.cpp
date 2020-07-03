@@ -132,7 +132,7 @@ Glib::RefPtr<Gdk::Pixbuf> WebCam::Capture() {
 }
 
 // A callback for the GStreamer bus. Basically handles any errors that occur.
-bool WebCam::BusHandler(const Glib::RefPtr<Gst::Bus> &bus, const Glib::RefPtr<Gst::Message> &message) {
+bool WebCam::BusHandler(const Glib::RefPtr<Gst::Bus> &, const Glib::RefPtr<Gst::Message> &message) {
     switch (message->get_message_type()) {
     case Gst::MessageType::MESSAGE_EOS:
         std::cerr << "End of stream" << std::endl;

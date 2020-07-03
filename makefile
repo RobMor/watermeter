@@ -1,7 +1,7 @@
 PKGS = gtkmm-3.0 gstreamermm-1.0
 
 CXX      = g++
-CFLAGS = -Wall -O3 -I. `pkg-config --cflags $(PKGS)`
+CFLAGS = -Wall -Wextra -O3 -I. `pkg-config --cflags $(PKGS)`
 LIBS = `pkg-config --libs $(PKGS)`
 
 EXEC = watermeter

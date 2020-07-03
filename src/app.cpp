@@ -513,6 +513,10 @@ bool App::HandleFrameTimeout() {
 bool App::HandleTEDTimeout() {
     if (running_ && run_ted_) {
         int result = system(TED_PATH " auto");
+
+        if (result != 0) {
+            std::cout << "Failed to execute TED" << std::endl;
+        }
     }
 
     return running_;
