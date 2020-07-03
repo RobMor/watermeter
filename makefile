@@ -1,31 +1,39 @@
 PKGS = gtkmm-3.0 gstreamermm-1.0
 
-CC = g++
-FLAGS = -Wall -O3 -std=c++11
-CFLAGS = $(FLAGS) `pkg-config --cflags $(PKGS)`
-LDFLAGS = $(FLAGS) `pkg-config --libs $(PKGS)`
+CXX      = g++
+CFLAGS = -Wall -O3 -I. `pkg-config --cflags $(PKGS)`
+LIBS = `pkg-config --libs $(PKGS)`
 
-SRCS = main.cpp app.cpp app.h webcam.cpp webcam.h config.h README makefile
-OBJS = main.o webcam.o app.o
+EXEC = watermeter
+SRCDIR = src
+BUILDDIR = target
 
-.cpp.o:
-	$(CC) -c $(CFLAGS) $<
+SOURCES = $(wildcard $(SRCDIR)/*.cpp)
+OBJECTS = $(patsubst $(SRCDIR)/%.cpp, $(BUILDDIR)/%.o, $(SOURCES))
 
-all: watermeter
+all: directories $(EXEC)
 
-watermeter: $(OBJS)
-	$(CC) -o watermeter $(OBJS) $(LDFLAGS)
+$(EXEC): $(OBJECTS)
+	$(CXX) $(CFLAGS) $(LIBS) $(OBJECTS) -o $(EXEC)
 
-run: watermeter
-	./watermeter
+$(OBJECTS): $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
+	$(CXX) $(CFLAGS) -o $@ -c $<
+
+directories: $(BUILDDIR)
+
+$(BUILDDIR):
+	mkdir -p $(BUILDDIR)
+
+run: all
+	./$(EXEC)
+
+format:
+	clang-format -i $(wildcard $(SRCDIR)/*)
 
 clean:
-	rm -f $(OBJS) watermeter.zip
+	rm -rf $(BUILDDIR)
 
-zip: $(SRCS)
-	zip watermeter.zip $(SRCS) makefile
+cleanall: clean
+	rm $(EXEC)
 
-main.o: main.cpp app.h webcam.h makefile
-app.o: app.cpp app.h config.h makefile
-pipeline.o: webcam.cpp webcam.h makefile
-
+.PHONY: all directories run format clean cleanall
