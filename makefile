@@ -14,7 +14,7 @@ OBJECTS = $(patsubst $(SRCDIR)/%.cpp, $(BUILDDIR)/%.o, $(SOURCES))
 all: directories $(EXEC)
 
 $(EXEC): $(OBJECTS)
-	$(CXX) $(CFLAGS) $(LIBS) $(OBJECTS) -o $(EXEC)
+	$(CXX) $(CFLAGS) $(OBJECTS) $(LIBS) -o $(EXEC)
 
 $(OBJECTS): $(BUILDDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CXX) $(CFLAGS) -o $@ -c $<
