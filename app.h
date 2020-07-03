@@ -4,8 +4,9 @@
 #include <cmath> // Simple math and PI
 #include <cassert> // Invariant assertions
 #include <sys/stat.h> // Directory creation TODO not portable
+#include <iostream> // printing
 
-#include <gtkmm.h>
+#include <gtkmm.h> // The GTK 3 C++ API. (Includes Cairo Gtk Gio and Glib)
 
 #include "config.h"
 #include "pipeline.h"
@@ -17,6 +18,7 @@ public:
     void Draw(const Cairo::RefPtr<Cairo::Context> &cr) {
         cr->save();
         cr->arc(x, y, r, 0, 2 * M_PI);
+        cr->stroke();
         cr->restore();
     }
 };
@@ -29,6 +31,7 @@ public:
         cr->save();
         cr->move_to(x1, y1);
         cr->line_to(x2, y2);
+        cr->stroke();
         cr->restore();
     }
 };
@@ -41,7 +44,7 @@ public:
 protected:
     App();
 
-    int HandleCommandLine(const Glib::RefPtr<Gio::ApplicationCommandLine> &cmd);
+    int HandleCommandLine(const Glib::RefPtr<Glib::VariantDict> &cmd);
 
     void HandleActivate();
     bool HandleKeyPress(GdkEventKey *event);
@@ -94,8 +97,8 @@ private:
     double angle_;
     double angle_diff_; // The difference between the angle at the previous frame and this frame.
 
-    double inner_; // Inner radius of needle detection
-    double outer_; // Outer radius of needle detection
+    double inner_ = 0; // Inner radius of needle detection
+    double outer_ = 1; // Outer radius of needle detection
 
     double *hist_;
 };

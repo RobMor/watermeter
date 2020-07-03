@@ -1,67 +1,34 @@
 #include <iomanip>
+#include <iostream>
 
 #include "app.h"
 
-App::App() : Gtk::Application("wm.app", Gio::ApplicationFlags::APPLICATION_HANDLES_COMMAND_LINE) {
+App::App() : Gtk::Application("wm.app") {
 }
 
 Glib::RefPtr<App> App::Create() {
     App *app = new App();
 
-    app->signal_command_line().connect(sigc::mem_fun(app, &App::HandleCommandLine));
+    app->add_main_option_entry(Gio::Application::OptionType::OPTION_TYPE_BOOL, "save", 's', "Save the current frame every full rotation of the dial");
+    app->add_main_option_entry(Gio::Application::OptionType::OPTION_TYPE_BOOL, "save-all", 'a', "Save every frame");
+    app->add_main_option_entry(Gio::Application::OptionType::OPTION_TYPE_BOOL, "run-ted", 't', "Run the TED data collection program every hour");
+    app->add_main_option_entry(Gio::Application::OptionType::OPTION_TYPE_BOOL, "save-debug", 'd', "Save debug images every frame");
+    app->add_main_option_entry(Gio::Application::OptionType::OPTION_TYPE_BOOL, "save-hist", 'h', "Save a histogram of needle detection data every frame");
+
+    app->signal_handle_local_options().connect(sigc::mem_fun(app, &App::HandleCommandLine));
     app->signal_activate().connect(sigc::mem_fun(app, &App::HandleActivate));
 
     return Glib::RefPtr<App>(app);
 }
 
-int App::HandleCommandLine(const Glib::RefPtr<Gio::ApplicationCommandLine> &cmd) {
-    int argc;
-    char **argv = cmd->get_arguments(argc);
+int App::HandleCommandLine(const Glib::RefPtr<Glib::VariantDict> &options) {
+    save_images_ = options->contains("save");
+    save_all_images_ = options->contains("save-all");
+    run_ted_ = options->contains("run-ted");
+    save_debug_images_ = options->contains("save-debug");
+    save_hist_ = options->contains("save-hist");
 
-    Glib::OptionContext ctx;
-
-    Glib::OptionGroup main_group("options", "options for general use");
-
-    Glib::OptionEntry save_images_option;
-    save_images_option.set_short_name('s');
-    save_images_option.set_description("Save the current frame every full rotation of the dial.");
-    main_group.add_entry(save_images_option, save_images_);
-
-    Glib::OptionEntry save_all_images_option;
-    save_all_images_option.set_short_name('a');
-    save_all_images_option.set_description("Save every frame.");
-    main_group.add_entry(save_all_images_option, save_all_images_);
-
-    Glib::OptionEntry run_ted_option;
-    run_ted_option.set_short_name('t');
-    run_ted_option.set_description("Run the TED data collection program every hour.");
-    main_group.add_entry(run_ted_option, run_ted_);
-
-    ctx.add_group(main_group);
-
-    Glib::OptionGroup debug_group("debug", "options for use in debugging");
-
-    Glib::OptionEntry save_debug_images_option;
-    save_debug_images_option.set_short_name('d');
-    save_debug_images_option.set_description("Save debug images every frame.");
-    debug_group.add_entry(save_debug_images_option, save_debug_images_);
-
-    Glib::OptionEntry save_hist_option;
-    save_hist_option.set_short_name('h');
-    save_hist_option.set_description("Save a histogram of needle detection data every frame.");
-    debug_group.add_entry(save_hist_option, save_hist_);
-
-    ctx.add_group(debug_group);
-
-    bool success = ctx.parse(argc, argv);
-
-    if (success) {
-        activate();
-    }
-
-    g_strfreev(argv);
-
-    return success;
+    return -1;
 }
 
 void App::HandleActivate() {
@@ -74,6 +41,7 @@ void App::HandleActivate() {
     NextFrame();
     Refresh();
 
+    window_->show_all();
     window_->present();
 }
 
@@ -81,9 +49,11 @@ void App::MakeWindow() {
     window_ = new Gtk::ApplicationWindow();
     add_window(*window_);
     window_->set_default_size(640, 360);
-    window_->signal_key_press_event().connect(sigc::mem_fun(this, &App::HandleKeyPress));
+    // after=false because some other signal handler is intercepting the signal
+    // on the space key (???)
+    window_->signal_key_press_event().connect(sigc::mem_fun(this, &App::HandleKeyPress), false);
 
-    Gtk::VBox *vbox = new Gtk::VBox();
+    Gtk::VBox *vbox = new Gtk::VBox(false, 2);
     window_->add(*vbox);
 
     drawing_area_ = new Gtk::DrawingArea();
@@ -96,7 +66,7 @@ void App::MakeWindow() {
     drawing_area_->signal_motion_notify_event().connect(sigc::mem_fun(this, &App::HandleMotion));
 
     label_ = new Gtk::Label();
-    vbox->pack_start(*label_);
+    vbox->pack_start(*label_, Gtk::PackOptions::PACK_SHRINK);
 }
 
 void App::NextFrame() {
@@ -114,7 +84,7 @@ void App::Refresh() {
     }
 
     label_stream << " - Current Reading: ";
-    label_stream << std::setfill('0') << std::setw(10) << reading_;
+    label_stream << std::setfill('0') << std::setw(10) << std::fixed << std::setprecision(2) << reading_;
 
     std::string label_text = label_stream.str();
 
@@ -132,6 +102,10 @@ bool App::HandleDraw(const Cairo::RefPtr<Cairo::Context>& cr) {
     cr->rectangle(0, 0, drawing_area_->get_allocated_width(), drawing_area_->get_allocated_height());
     cr->fill();
     cr->stroke();
+
+    cr->restore();
+
+    cr->save();
     
     // Scale and center the main camera view
     double ratio, xoffset, yoffset;
@@ -169,19 +143,16 @@ void App::DrawView(const Cairo::RefPtr<Cairo::Context> &cr) {
     cr->save();
 
     Cairo::RefPtr<Cairo::ImageSurface> surface = Gdk::Cairo::create_surface_from_pixbuf(image_, 1);
-
     cr->set_source(surface, 0, 0);
     cr->paint();
 
     // Draw the circle in red
     cr->set_source_rgb(1, 0, 0);
     circle_.Draw(cr);
-    cr->stroke();
 
     // Draw the line in green
     cr->set_source_rgb(0, 1, 0);
     line_.Draw(cr);
-    cr->stroke();
 
     cr->restore();
 }
@@ -320,7 +291,7 @@ void App::Output() {
     if (save_debug_images_) {
         char file_name[64];
         mkdir(DEBUG_FOLDER, 0777); // TODO Not Portable
-        strftime(file_name, 64, DEBUG_FOLDER "/%Y-%m-%dT%H_%M_%S.jpg", localtime(&now));
+        strftime(file_name, 64, DEBUG_FOLDER "/%Y-%m-%dT%H_%M_%S.png", localtime(&now));
 
         int width = image_->get_width();
         int height = image_->get_height();
@@ -332,7 +303,7 @@ void App::Output() {
 
         surface->flush();
 
-        surface->write_to_png(file_name);
+        surface->write_to_png(file_name); // TODO less than ideal
     }
 }
 
@@ -349,7 +320,7 @@ void App::AskForReading() {
     entry.set_text(std::to_string(reading_));
     box->add(entry);
 
-    dialog.show();
+    dialog.show_all();
     int response = dialog.run();
 
     if (response == Gtk::ResponseType::RESPONSE_OK) {

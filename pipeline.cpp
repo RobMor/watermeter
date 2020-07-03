@@ -6,12 +6,14 @@
 gboolean BusHandler(GstBus *bus, GstMessage *msg, gpointer *data);
 
 WebCam::WebCam() {
+    Gst::init();
+
     /* ------ Create pipeline ------ */
     pipeline_ = Gst::Pipeline::create();
 
     /* ------ Create pipeline elements ------ */
 
-    // Video4Linux source (what the webcam uses)
+    // Video4Linux source (the driver for the webcam)
     Glib::RefPtr<Gst::Element> source = Gst::ElementFactory::create_element("v4l2src");
 
     // A converter to convert the data from the webcam to any format we could
@@ -27,7 +29,7 @@ WebCam::WebCam() {
     // We only want raw RGB data in this sink so we make caps to filter out
     // everything else
     Glib::RefPtr<Gst::Caps> caps = Gst::Caps::create_simple("video/x-raw");
-    caps->set_simple("format", Gst::VIDEO_FORMAT_RGB); // TODO this might be wrong
+    caps->set_simple("format", "RGB"); // TODO this might be wrong
     // This is what it used to be
     // caps = gst_caps_new_simple("video/x-raw", "format", G_TYPE_STRING, "RGB", NULL);
     // Apply the caps to our sink
@@ -38,15 +40,12 @@ WebCam::WebCam() {
     // Add a message handler to the pipeline (called bus handler in GST world)
     Glib::RefPtr<Gst::Bus> bus = pipeline_->get_bus();
     bus->add_watch(sigc::mem_fun(this, &WebCam::BusHandler));
-
-    // Add all previously created elements to the pipeline
-    pipeline_->add(source);
-    pipeline_->add(converter);
-    pipeline_->add(sink_);
     
+    // Add all previously created elements to the pipeline
+    pipeline_->add(source)->add(converter)->add(sink_);
+
     // Link the elements together
-    source->link(converter);
-    converter->link(sink_);
+    source->link(converter)->link(sink_);
 }
 
 WebCam::~WebCam() {
@@ -91,8 +90,8 @@ Glib::RefPtr<Gdk::Pixbuf> WebCam::Capture() {
         
         bool success = false;
         int width, height;
-        success &= structure.get_field("width", width);
-        success &= structure.get_field("height", height);
+        success |= structure.get_field("width", width);
+        success |= structure.get_field("height", height);
 
         if (!success) {
             std::cerr << "Could not get dimensions of frame" << std::endl;
