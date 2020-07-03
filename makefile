@@ -1,7 +1,7 @@
 PKGS = gtkmm-3.0 gstreamermm-1.0
 
 CC = g++
-FLAGS = -Wall -std=c++11 -g
+FLAGS = -Wall -O3 -std=c++11
 CFLAGS = $(FLAGS) `pkg-config --cflags $(PKGS)`
 LDFLAGS = $(FLAGS) `pkg-config --libs $(PKGS)`
 

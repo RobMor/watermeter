@@ -89,7 +89,7 @@ Glib::RefPtr<Gdk::Pixbuf> WebCam::Capture() {
         Gst::Structure structure = caps->get_structure(0);
         
         bool success = false;
-        int width, height;
+        int width = 0, height = 0;
         success |= structure.get_field("width", width);
         success |= structure.get_field("height", height);
 

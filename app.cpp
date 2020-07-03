@@ -363,7 +363,7 @@ bool App::HandleKeyPress(GdkEventKey *event) {
                 if (ted_timeout_) {
                     ted_timeout_.disconnect();
                 }
-                frame_timeout_ = Glib::signal_timeout().connect(sigc::mem_fun(this, &App::HandleTEDTimeout), FRAME_RATE);
+                frame_timeout_ = Glib::signal_timeout().connect_seconds(sigc::mem_fun(this, &App::HandleTEDTimeout), 3600);
             }
 
             NextFrame();
