@@ -9,7 +9,7 @@
 #include <gtkmm.h> // The GTK 3 C++ API. (Includes Cairo Gtk Gio and Glib)
 
 #include "config.h"
-#include "pipeline.h"
+#include "webcam.h"
 
 class Circle {
 public:

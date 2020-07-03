@@ -1,7 +1,7 @@
 #include <cstdlib> // Exit function
 #include <iostream> // Printing and stuff
 
-#include "pipeline.h"
+#include "webcam.h"
 
 gboolean BusHandler(GstBus *bus, GstMessage *msg, gpointer *data);
 
