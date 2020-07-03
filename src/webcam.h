@@ -11,6 +11,7 @@ public:
 
     void Init();
     Glib::RefPtr<Gdk::Pixbuf> Capture();
+    Glib::SignalProxy<Gst::FlowReturn> signal_new_frame();
 
 protected:
     bool BusHandler(const Glib::RefPtr<Gst::Bus> &bus, const Glib::RefPtr<Gst::Message> &message);

@@ -32,6 +32,7 @@ int App::HandleCommandLine(const Glib::RefPtr<Glib::VariantDict> &options) {
 
 void App::HandleActivate() {
     web_cam_.Init();
+    new_frame_ = web_cam_.signal_new_frame().connect(sigc::mem_fun(this, &App::NewFrame));
 
     if (save_hist_)
         hist_ = new double[NUM_ANGLES];
@@ -58,14 +59,21 @@ void App::MakeWindow() {
     drawing_area_ = new Gtk::DrawingArea();
     vbox->pack_start(*drawing_area_, Gtk::PackOptions::PACK_EXPAND_WIDGET);
     drawing_area_->set_size_request(100, 100);
-    drawing_area_->add_events(Gdk::EventMask::BUTTON_PRESS_MASK | Gdk::EventMask::BUTTON_RELEASE_MASK | Gdk::EventMask::BUTTON_MOTION_MASK);
+    drawing_area_->add_events(Gdk::EventMask::BUTTON_PRESS_MASK | Gdk::EventMask::BUTTON_MOTION_MASK);
     drawing_area_->signal_draw().connect(sigc::mem_fun(this, &App::HandleDraw));
     drawing_area_->signal_button_press_event().connect(sigc::mem_fun(this, &App::HandleButtonPress));
-    drawing_area_->signal_button_release_event().connect(sigc::mem_fun(this, &App::HandleButtonRelease));
     drawing_area_->signal_motion_notify_event().connect(sigc::mem_fun(this, &App::HandleMotion));
 
     label_ = new Gtk::Label();
     vbox->pack_start(*label_, Gtk::PackOptions::PACK_SHRINK);
+}
+
+Gst::FlowReturn App::NewFrame() {
+    NextFrame();
+    FindNeedle();
+    Refresh();
+
+    return Gst::FlowReturn::FLOW_OK;
 }
 
 void App::NextFrame() {
@@ -74,20 +82,17 @@ void App::NextFrame() {
 }
 
 void App::Refresh() {
-    std::stringstream label_stream;
+    char *label_text;
 
     if (running_) {
-        label_stream << "RUNNING";
+        asprintf(&label_text, "RUNNING - Current Reading: %010.2f", reading_);
     } else {
-        label_stream << "PAUSED";
+        asprintf(&label_text, "STOPPED - Current Reading: %010.2f", reading_);
     }
 
-    label_stream << " - Current Reading: ";
-    label_stream << std::setfill('0') << std::setw(10) << std::fixed << std::setprecision(2) << reading_;
-
-    std::string label_text = label_stream.str();
-
     label_->set_text(label_text);
+
+    free(label_text);
 
     // TODO necessary?
     window_->queue_draw();
@@ -154,10 +159,6 @@ void App::DrawView(const Cairo::RefPtr<Cairo::Context> &cr) {
     line_.Draw(cr);
 
     cr->restore();
-}
-
-void NextFrame() {
-    
 }
 
 void App::FindNeedle() {
@@ -307,6 +308,8 @@ void App::Output() {
 }
 
 void App::AskForReading() {
+    new_frame_.block();
+
     Gtk::Dialog dialog("Reading", true);
     dialog.add_button("_OK", Gtk::ResponseType::RESPONSE_OK);
 
@@ -325,6 +328,8 @@ void App::AskForReading() {
     if (response == Gtk::ResponseType::RESPONSE_OK) {
         reading_ = std::atof(entry.get_text().c_str());
     }
+
+    new_frame_.unblock();
 }
 
 bool App::HandleKeyPress(GdkEventKey *event) {
@@ -365,22 +370,11 @@ bool App::HandleKeyPress(GdkEventKey *event) {
                 frame_timeout_ = Glib::signal_timeout().connect_seconds(sigc::mem_fun(this, &App::HandleTEDTimeout), 3600);
             }
 
-            NextFrame();
-            FindNeedle();
             Output();
             Refresh();
 
             return true;
         }
-        // Update the current frame
-        case GDK_KEY_Return: {
-            NextFrame();
-            FindNeedle();
-            Refresh();
-
-            return true;
-        }
-        // Move needle detection up
         case GDK_KEY_j: {
             if ((event->state & GDK_CONTROL_MASK) != 0) {
                 inner_ = std::fmin(outer_, inner_ + 0.1);
@@ -470,8 +464,6 @@ bool App::HandleMotion(GdkEventMotion *event) {
 
             circle_.r = sqrt(dx * dx + dy * dy);
 
-            Refresh();
-
             return true;
         }
     }
@@ -479,32 +471,9 @@ bool App::HandleMotion(GdkEventMotion *event) {
     return false;
 }
 
-bool App::HandleButtonRelease(GdkEventButton *event) {
-    if (event->type != GDK_BUTTON_RELEASE)
-        return false;
-
-    switch (event->button) {
-    // left button released
-    case 1:
-        if (!running_) {
-            FindNeedle();
-            Refresh();
-
-            return true;
-        }
-        
-        return false;
-    default:
-        return false;
-    }
-}
-
 bool App::HandleFrameTimeout() {
     if (running_) {
-        NextFrame();
-        FindNeedle();
         Output();
-        Refresh();
     }
 
     return running_;

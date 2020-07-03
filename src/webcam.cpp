@@ -26,6 +26,8 @@ WebCam::WebCam() {
     sink_->property_max_buffers().set_value(1);
     // Tell the AppSink to drop old buffers when we run out of space
     sink_->property_drop().set_value(true);
+    // Tell the AppSink to let us know when there is a new frame available
+    sink_->property_emit_signals().set_value(true);
     // We only want raw RGB data in this sink so we make caps to filter out
     // everything else
     Glib::RefPtr<Gst::Caps> caps = Gst::Caps::create_simple("video/x-raw");
@@ -69,6 +71,10 @@ void WebCam::Init() {
         std::cerr << "Failed to set pipeline to playing" << std::endl;
         exit(EXIT_FAILURE);
     }
+}
+
+Glib::SignalProxy<Gst::FlowReturn> WebCam::signal_new_frame() {
+    return sink_->signal_new_sample();
 }
 
 Glib::RefPtr<Gdk::Pixbuf> WebCam::Capture() {

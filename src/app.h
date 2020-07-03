@@ -7,6 +7,7 @@
 #include <iostream> // printing
 
 #include <gtkmm.h> // The GTK 3 C++ API. (Includes Cairo Gtk Gio and Glib)
+#include <gstreamermm.h> // The GStreamer C++ API.
 
 #include "config.h"
 #include "webcam.h"
@@ -59,6 +60,7 @@ protected:
 
 private:
     void MakeWindow();
+    Gst::FlowReturn NewFrame();
     void NextFrame();
     void Refresh();
     void FindNeedle();
@@ -77,25 +79,26 @@ private:
     Gtk::DrawingArea *drawing_area_;
     Gtk::Label *label_;
 
+    sigc::connection new_frame_;
     sigc::connection frame_timeout_;
     sigc::connection ted_timeout_;
 
     Circle circle_;
     Line line_;
 
-    bool save_images_;
-    bool save_all_images_;
-    bool run_ted_;
+    bool save_images_ = false;
+    bool save_all_images_ = false;
+    bool run_ted_ = false;
 
-    bool save_debug_images_;
-    bool save_hist_;
+    bool save_debug_images_ = false;
+    bool save_hist_ = false;
 
-    bool running_;
+    bool running_ = false;
 
-    double reading_;
-    double prev_reading_; // The reading at the last image save.
-    double angle_;
-    double angle_diff_; // The difference between the angle at the previous frame and this frame.
+    double reading_ = 0;
+    double prev_reading_ = 0; // The reading at the last image save.
+    double angle_ = 0;
+    double angle_diff_ = 0; // The difference between the angle at the previous frame and this frame.
 
     double inner_ = 0; // Inner radius of needle detection
     double outer_ = 1; // Outer radius of needle detection
