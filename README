@@ -5,16 +5,14 @@ try to avoid any bright reflections around the needle.
 
 Then start the program:
 
-    ./ocr -sat
+    ./watermeter
 
 Pressing the enter key will refresh the image you see. Press enter at least once
 to give yourself an accurate image of what the webcam is seeing.
 
 Pressing r will bring up a dialog to enter the current reading of the dial.
-Enter the current whole number reading of the dial (this means the numbers
-shown on the rotating digits along with the position of the needle around the
-dial). This is taken as-is and as the dial rotates the amount of rotation will
-be added to this value.
+Enter the current whole number reading of the dial up to any precision that you
+want. This value will be updated as the needle moves around the dial.
 
 Click and drag with the left mouse button to draw a circle. This circle
 represents where the program will search for the needle. Draw a circle around
@@ -24,7 +22,8 @@ needle currently is.
 
 When satisfied with the programs detection of the needles location press the
 spacebar to start collecting data. The program will begin writing the estimated
-reading of the dial to DATA_FILE (see CONFIGURATION) every frame.
+reading of the dial to DATA_FILE every OUTPUT_RATE
+milliseconds (see CONFIGURATION).
 
 CONTROLS
 
