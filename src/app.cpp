@@ -370,7 +370,7 @@ bool App::HandleKeyPress(GdkEventKey *event) {
             if (output_timeout_) {
                 output_timeout_.disconnect();
             }
-            output_timeout_ = Glib::signal_timeout().connect(sigc::mem_fun(this, &App::HandleOutputTimeout), FRAME_RATE);
+            output_timeout_ = Glib::signal_timeout().connect(sigc::mem_fun(this, &App::HandleOutputTimeout), OUTPUT_RATE);
             
             if (run_ted_) {
                 if (ted_timeout_) {

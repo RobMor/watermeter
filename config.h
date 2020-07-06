@@ -5,7 +5,7 @@
 #define NUM_ANGLES 512
 
 // Number of milliseconds in between frames
-#define FRAME_RATE 5000
+#define OUTPUT_RATE 5000
 
 // The file to write the estimated readings to
 #define DATA_FILE "data.csv"
