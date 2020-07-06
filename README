@@ -1,4 +1,22 @@
-GUIDE
+BUILDING
+
+You'll need to have a C++ compiler, make, gtkmm and gstreamermm (along with the
+"base" and "good" gstreamer plugins) to be able to run this program.
+
+On Ubuntu (verified on Ubuntu 20.04) this means installing the following
+packages:
+
+    build-essential libgtkmm-3.0-dev libgstreamermm-1.0-dev
+    libgstreamer-plugins-base1.0-dev libgstreamer-plugins-good1.0-dev
+
+On ArchLinux this means installing the following packages:
+
+    base-devel gtkmm gstreamermm gst-plugins-base gst-plugins-good
+
+To compile just download this repository and run `make` inside this directory.
+This should build the program and produce an executable called `watermeter`
+
+USAGE
 
 First position your camera. Try to position it so that the image is square and
 try to avoid any bright reflections around the needle.
