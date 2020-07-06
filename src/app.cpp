@@ -69,13 +69,12 @@ void App::MakeWindow() {
 }
 
 Gst::FlowReturn App::HandleNewFrame() {
-    // Make sure no other pesky thread tries to double-set the new_frame_ signal
-    // TODO is this necessary (they do it in gtk-sink)
-    lock_.lock();
+    // This callback only gets called from the gstreamer thread (of which there
+    // is only one [?]) so depending on a raw if statement here to register the
+    // callback should be fine (no need for a mutex)
     if (!new_frame_) {
         new_frame_ = Glib::signal_idle().connect(sigc::mem_fun(this, &App::NewFrame));
     }
-    lock_.unlock();
 
     return Gst::FlowReturn::FLOW_OK;
 }
@@ -353,7 +352,7 @@ bool App::HandleKeyPress(GdkEventKey *event) {
         case GDK_KEY_space:
             running_ = false;
             
-            frame_timeout_.disconnect();
+            output_timeout_.disconnect();
             ted_timeout_.disconnect();
 
             Refresh();
@@ -368,16 +367,16 @@ bool App::HandleKeyPress(GdkEventKey *event) {
         case GDK_KEY_space: {
             running_ = true;
 
-            if (frame_timeout_) {
-                frame_timeout_.disconnect();
+            if (output_timeout_) {
+                output_timeout_.disconnect();
             }
-            frame_timeout_ = Glib::signal_timeout().connect(sigc::mem_fun(this, &App::HandleFrameTimeout), FRAME_RATE);
+            output_timeout_ = Glib::signal_timeout().connect(sigc::mem_fun(this, &App::HandleOutputTimeout), FRAME_RATE);
             
             if (run_ted_) {
                 if (ted_timeout_) {
                     ted_timeout_.disconnect();
                 }
-                frame_timeout_ = Glib::signal_timeout().connect_seconds(sigc::mem_fun(this, &App::HandleTEDTimeout), 3600);
+                output_timeout_ = Glib::signal_timeout().connect_seconds(sigc::mem_fun(this, &App::HandleTEDTimeout), 3600);
             }
 
             Output();
@@ -506,7 +505,7 @@ bool App::HandleButtonRelease(GdkEventButton *event) {
     }
 }
 
-bool App::HandleFrameTimeout() {
+bool App::HandleOutputTimeout() {
     if (running_) {
         Output();
     }

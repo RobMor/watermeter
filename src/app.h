@@ -55,7 +55,7 @@ protected:
     bool HandleMotion(GdkEventMotion *event);
     bool HandleButtonRelease(GdkEventButton *event);
 
-    bool HandleFrameTimeout();
+    bool HandleOutputTimeout();
     bool HandleTEDTimeout();
 
 private:
@@ -78,9 +78,8 @@ private:
     Gtk::DrawingArea *drawing_area_;
     Gtk::Label *label_;
 
-    Glib::Mutex lock_;
     sigc::connection new_frame_;
-    sigc::connection frame_timeout_;
+    sigc::connection output_timeout_;
     sigc::connection ted_timeout_;
 
     Circle circle_;
