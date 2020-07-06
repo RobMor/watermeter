@@ -60,8 +60,8 @@ protected:
 
 private:
     void MakeWindow();
-    Gst::FlowReturn NewFrame();
-    void NextFrame();
+    Gst::FlowReturn HandleNewFrame();
+    bool NewFrame();
     void Refresh();
     void FindNeedle();
     void AskForReading();
@@ -72,13 +72,13 @@ private:
     void DrawView(const Cairo::RefPtr<Cairo::Context> &cr);
 
     WebCam web_cam_;
-
     Glib::RefPtr<Gdk::Pixbuf> image_;
 
     Gtk::ApplicationWindow *window_;
     Gtk::DrawingArea *drawing_area_;
     Gtk::Label *label_;
 
+    Glib::Mutex lock_;
     sigc::connection new_frame_;
     sigc::connection frame_timeout_;
     sigc::connection ted_timeout_;

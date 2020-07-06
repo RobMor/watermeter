@@ -31,14 +31,14 @@ int App::HandleCommandLine(const Glib::RefPtr<Glib::VariantDict> &options) {
 }
 
 void App::HandleActivate() {
+    web_cam_.signal_new_frame().connect(sigc::mem_fun(this, &App::HandleNewFrame));
     web_cam_.Init();
-    new_frame_ = web_cam_.signal_new_frame().connect(sigc::mem_fun(this, &App::NewFrame));
 
     if (save_hist_)
         hist_ = new double[NUM_ANGLES];
     
     MakeWindow();
-    NextFrame();
+    NewFrame();
     Refresh();
 
     window_->show_all();
@@ -68,17 +68,27 @@ void App::MakeWindow() {
     vbox->pack_start(*label_, Gtk::PackOptions::PACK_SHRINK);
 }
 
-Gst::FlowReturn App::NewFrame() {
-    NextFrame();
-    FindNeedle();
-    Refresh();
+Gst::FlowReturn App::HandleNewFrame() {
+    // Make sure no other pesky thread tries to double-set the new_frame_ signal
+    // TODO is this necessary (they do it in gtk-sink)
+    lock_.lock();
+    if (!new_frame_) {
+        new_frame_ = Glib::signal_idle().connect(sigc::mem_fun(this, &App::NewFrame));
+    }
+    lock_.unlock();
 
     return Gst::FlowReturn::FLOW_OK;
 }
 
-void App::NextFrame() {
+bool App::NewFrame() {
     // TODO does the refptr clean itself up?
     image_ = web_cam_.Capture();
+    
+    FindNeedle();
+    Refresh();
+
+    // Don't want this signal handler to be called over and over.
+    return false;
 }
 
 void App::Refresh() {
@@ -439,6 +449,7 @@ bool App::HandleButtonPress(GdkEventButton *event) {
             line_.y2 = 0;
 
             // TODO Refresh here?
+            Refresh();
 
             return true;
         }
@@ -464,11 +475,35 @@ bool App::HandleMotion(GdkEventMotion *event) {
 
             circle_.r = sqrt(dx * dx + dy * dy);
 
+            // TODO find needle here?
+            FindNeedle();
+            Refresh();
+
             return true;
         }
     }
 
     return false;
+}
+
+bool App::HandleButtonRelease(GdkEventButton *event) {
+    if (event->type != GDK_BUTTON_RELEASE)
+        return false;
+
+    switch (event->button) {
+    // left button released
+    case 1:
+        if (!running_) {
+            FindNeedle();
+            Refresh();
+
+            return true;
+        }
+        
+        return false;
+    default:
+        return false;
+    }
 }
 
 bool App::HandleFrameTimeout() {
