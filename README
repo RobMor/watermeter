@@ -57,7 +57,7 @@ There are some options you can configure within `config.h`:
         "~/ted/hourly/datacollection.py")
     NUM_ANGLES - An integer specifying the number of angles to check around the
         circle you draw. (Default: 512)
-    FRAME_RATE - The number of milliseconds between frames. (Default: 5000)
+    OUTPUT_RATE - The number of milliseconds between data points. (Default: 5000)
     DATA_FILE - The file to write the estimated readings to. (Default:
     "meter.csv")
     HIST_FILE - The file to write the histogram data to. (Default: "hist.csv")

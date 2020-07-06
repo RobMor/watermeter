@@ -4,7 +4,7 @@
 // Number of angles around the circle to check
 #define NUM_ANGLES 512
 
-// Number of milliseconds in between frames
+// Number of milliseconds in between data points
 #define OUTPUT_RATE 5000
 
 // The file to write the estimated readings to
